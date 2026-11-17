@@ -1,0 +1,345 @@
+<title>Noches de Neón</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Pacifico&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+  /* Layout: full-bleed 2D sunset (SVG, cover-cropped) with glass cards centered on top; works portrait and landscape */
+  :root {
+    --night: #0b0414;
+    --paper: #fff5ee;
+    --pink: #ff3d9a;
+    --cyan: #3ef2ff;
+    --sun: #ffc35a;
+    --glass: rgba(28, 14, 44, .46);
+    --glass-edge: rgba(255, 255, 255, .22);
+    --muted: rgba(255, 245, 238, .64);
+    --display: "Anton", "Impact", "Arial Narrow", sans-serif;
+    --script: "Pacifico", "Brush Script MT", cursive;
+    --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body { background: var(--night); color: var(--paper); font-family: var(--body); overflow: hidden; -webkit-font-smoothing: antialiased; }
+
+  #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .layer { position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); perspective: 1100px; grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  .layer > * { grid-area: 1 / 1; }
+
+  /* intro title */
+  .intro { text-align: center; }
+  .intro .neon { font-family: var(--script); font-size: clamp(54px, 12vw, 150px); line-height: 1.2; color: #fff0f7;
+    text-shadow: 0 0 6px var(--pink), 0 0 20px var(--pink), 0 0 48px rgba(255, 61, 154, .8), 0 0 90px rgba(255, 61, 154, .5); transform: rotate(-5deg); }
+  .intro .neon .w { display: inline-block; white-space: nowrap; }
+  .intro .neon span { display: inline-block; }
+  .intro .sub { font: 600 clamp(11px, 1.6vw, 15px)/1 var(--body); letter-spacing: .5em; text-transform: uppercase; color: #e9feff; margin-top: 18px;
+    text-shadow: 0 0 10px rgba(62, 242, 255, .8); }
+
+  /* glass card base */
+  .glass { background: var(--glass); border: 1px solid var(--glass-edge); border-radius: 30px;
+    box-shadow: 0 40px 80px -20px rgba(0, 0, 0, .65), inset 0 1px 0 rgba(255, 255, 255, .25), inset 0 -1px 0 rgba(255, 255, 255, .05);
+    backdrop-filter: blur(22px) saturate(160%); -webkit-backdrop-filter: blur(22px) saturate(160%); }
+
+  /* radio card */
+  .radio { width: min(400px, 86vw); padding: 22px; transform-style: preserve-3d; position: relative; overflow: hidden; }
+  .radio::before { content: ""; position: absolute; inset: -40% -10% auto; height: 80%; background: radial-gradient(closest-side, rgba(255, 61, 154, .35), transparent); pointer-events: none; }
+  .radio .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; position: relative; }
+  .cover { width: 108px; height: 108px; border-radius: 18px; flex: none; position: relative; overflow: hidden;
+    background: linear-gradient(180deg, #2b0f55 0%, #c2348c 52%, #ff9a4a 72%, #1b0b30 72.5%, #3b1660 100%); box-shadow: 0 12px 26px rgba(0, 0, 0, .45); }
+  .cover::before { content: ""; position: absolute; left: 50%; top: 30%; width: 62%; aspect-ratio: 1; transform: translateX(-50%); border-radius: 50%;
+    background: repeating-linear-gradient(180deg, #ffe07a 0 7px, #ffe07a 7px, transparent 7px 9px), linear-gradient(#ffe07a, #ff4f8f);
+    -webkit-mask: linear-gradient(#000 0 56%, transparent 56%); mask: linear-gradient(#000 0 56%, transparent 56%); }
+  .cover::after { content: ""; position: absolute; left: 8px; bottom: 34px; width: 3px; height: 40px; background: #12061f; border-radius: 2px; transform: rotate(-8deg); box-shadow: 78px -6px 0 #12061f; }
+  .live { display: inline-flex; align-items: center; gap: 7px; font: 700 11px/1 var(--body); letter-spacing: .14em; padding: 8px 11px; border-radius: 999px; background: rgba(255, 255, 255, .12); }
+  .live i { width: 7px; height: 7px; border-radius: 50%; background: #ff4060; box-shadow: 0 0 10px #ff4060; }
+  .radio h3 { font: 700 26px/1.1 var(--body); margin: 18px 0 4px; letter-spacing: -.01em; position: relative; }
+  .radio p { font: 400 16px/1.3 var(--body); color: var(--muted); margin: 0; position: relative; }
+  .station { font: 600 11px/1 var(--body); letter-spacing: .26em; text-transform: uppercase; color: var(--cyan); margin-top: 14px; }
+  .eq { display: flex; align-items: flex-end; gap: 3px; height: 30px; margin: 18px 0 6px; }
+  .eq b { flex: 1; background: linear-gradient(180deg, var(--cyan), var(--pink)); border-radius: 2px; height: 30%; transform-origin: bottom; opacity: .85; }
+  .bar { height: 4px; border-radius: 4px; background: rgba(255, 255, 255, .16); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 34%; background: var(--paper); border-radius: 4px; }
+  .times { display: flex; justify-content: space-between; font: 500 11px/1 var(--body); color: var(--muted); margin-top: 8px; font-variant-numeric: tabular-nums; }
+  .ctrl { display: flex; justify-content: center; align-items: center; gap: 34px; margin-top: 14px; }
+  .ctrl svg { display: block; }
+  .play { width: 66px; height: 66px; border-radius: 50%; background: var(--paper); display: grid; place-items: center; box-shadow: 0 10px 30px rgba(255, 255, 255, .25); }
+
+  /* notifications */
+  .notes { position: absolute; display: flex; flex-direction: column; gap: 10px; width: min(330px, 80vw); }
+  .note { display: flex; gap: 12px; align-items: center; padding: 13px 15px; border-radius: 20px; }
+  .note .ic { width: 38px; height: 38px; border-radius: 11px; flex: none; display: grid; place-items: center; font: 700 15px var(--body); }
+  .note b { display: block; font: 600 13px/1.25 var(--body); }
+  .note span { display: block; font: 400 13px/1.3 var(--body); color: var(--muted); }
+
+  /* countdown */
+  .count { width: min(560px, 92vw); padding: clamp(22px, 4vw, 34px); text-align: center; position: relative; overflow: hidden; }
+  .count::before { content: ""; position: absolute; inset: auto -20% -60%; height: 100%; background: radial-gradient(closest-side, rgba(255, 140, 60, .32), transparent); pointer-events: none; }
+  .count .kick { font: 600 12px/1 var(--body); letter-spacing: .42em; text-transform: uppercase; color: var(--cyan); position: relative; }
+  .count .game { font-family: var(--display); font-size: clamp(64px, 16vw, 132px); line-height: 1.05; letter-spacing: .02em; margin: 10px 0 6px; position: relative;
+    background: linear-gradient(180deg, #fff3c4 0%, var(--sun) 35%, var(--pink) 75%, #9d1470 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 22px rgba(255, 61, 154, .5)); }
+  .count .lead { font: 500 clamp(14px, 2vw, 16px)/1.4 var(--body); color: var(--muted); position: relative; }
+  .digits { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(8px, 2vw, 14px); margin: 22px 0 18px; position: relative; }
+  .cell { background: rgba(10, 4, 20, .55); border: 1px solid rgba(255, 255, 255, .14); border-radius: 18px; padding: 14px 4px 12px; min-width: 0; }
+  .cell .n { font-family: var(--display); font-size: clamp(34px, 8vw, 62px); line-height: 1; font-variant-numeric: tabular-nums; display: block; overflow: hidden; height: 1em; }
+  .cell .n span { display: inline-block; }
+  .cell small { display: block; font: 600 10px/1 var(--body); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-top: 9px; }
+  .cell.sec .n { color: var(--pink); text-shadow: 0 0 18px rgba(255, 61, 154, .6); }
+  .date { font: 600 12px/1.4 var(--body); letter-spacing: .18em; text-transform: uppercase; color: var(--paper); position: relative; }
+  .date em { font-style: normal; color: var(--muted); letter-spacing: .08em; text-transform: none; font-weight: 400; display: block; margin-top: 4px; }
+
+  .controls { position: fixed; z-index: 5; right: max(16px, env(safe-area-inset-right, 0px) + 12px); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 8px; }
+  .controls button { font: 600 12px/1 var(--body); letter-spacing: .06em; color: var(--paper); background: rgba(12, 5, 22, .55); border: 1px solid rgba(255, 255, 255, .25);
+    padding: 10px 14px; border-radius: 999px; cursor: pointer; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .controls button:hover { border-color: var(--pink); }
+  .controls button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+  .controls button[aria-pressed="true"] { color: var(--cyan); border-color: var(--cyan); }
+</style>
+
+<svg id="scene" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#14062e"/><stop offset=".35" stop-color="#4a1470"/><stop offset=".55" stop-color="#b02a86"/>
+      <stop offset=".64" stop-color="#ff5a7e"/><stop offset=".68" stop-color="#ffa45a"/>
+    </linearGradient>
+    <linearGradient id="sunG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff07a"/><stop offset=".55" stop-color="#ffa04a"/><stop offset="1" stop-color="#ff2f7e"/></linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a1260"/><stop offset=".4" stop-color="#1c0a3a"/><stop offset="1" stop-color="#090316"/></linearGradient>
+    <radialGradient id="halo"><stop offset="0" stop-color="#ff7a6a" stop-opacity=".7"/><stop offset="1" stop-color="#ff3d9a" stop-opacity="0"/></radialGradient>
+    <mask id="sunMask"><rect x="0" y="0" width="1600" height="900" fill="#fff"/><g id="sunCuts" fill="#000"></g></mask>
+    <clipPath id="aboveSea"><rect x="0" y="0" width="1600" height="600"/></clipPath>
+  </defs>
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <g id="stars"></g>
+  <circle cx="800" cy="560" r="420" fill="url(#halo)" id="haloC"/>
+  <g clip-path="url(#aboveSea)"><g id="sunG"><circle cx="800" cy="520" r="210" fill="url(#sunG)" mask="url(#sunMask)"/></g></g>
+  <g id="skyline"></g>
+  <rect y="600" width="1600" height="300" fill="url(#sea)"/>
+  <g id="shimmer"></g>
+  <rect y="598" width="1600" height="3" fill="#ff9ad0" opacity=".7"/>
+  <g id="birds" fill="none" stroke="#2a0b3e" stroke-width="3" stroke-linecap="round"></g>
+  <g id="palms"></g>
+</svg>
+
+<div class="layer">
+  <div class="intro" id="intro">
+    <div class="neon" id="neonWord">Noches de Neón</div>
+    <div class="sub" id="introSub">Costa · 1986 · 2026</div>
+  </div>
+
+  <div class="radio glass" id="radio">
+    <div class="top">
+      <div class="cover" id="cover"></div>
+      <div class="live"><i></i>EN VIVO</div>
+    </div>
+    <div class="station" id="station">Radio Malecón · 88.4 FM</div>
+    <h3 id="song">Luces de la Costa</h3>
+    <p id="artist">Los Palmeras del Sur</p>
+    <div class="eq" id="eq"></div>
+    <div class="bar"><i id="barFill"></i></div>
+    <div class="times"><span id="tNow">1:12</span><span>3:48</span></div>
+    <div class="ctrl" id="ctrl">
+      <svg width="34" height="22" viewBox="0 0 34 22"><path d="M16 0v22L0 11zM34 0v22L18 11z" fill="#fff5ee" opacity=".9"/></svg>
+      <div class="play" id="play"><svg width="24" height="26" viewBox="0 0 24 26" id="playIcon"><path d="M3 1l20 12L3 25z" fill="#1a0a2a"/></svg></div>
+      <svg width="34" height="22" viewBox="0 0 34 22"><path d="M0 0v22l16-11zM18 0v22l16-11z" fill="#fff5ee" opacity=".9"/></svg>
+    </div>
+  </div>
+
+  <div class="notes" id="notes">
+    <div class="note glass"><div class="ic" style="background:#3ef2ff;color:#0b0414">M</div><div><b>Mapa · Destino fijado</b><span>Malecón, 4,2 km por la costa</span></div></div>
+    <div class="note glass"><div class="ic" style="background:#ff3d9a;color:#fff">J</div><div><b>Juanito</b><span>¿Listo para el 19? 🌴</span></div></div>
+    <div class="note glass"><div class="ic" style="background:#ffc35a;color:#0b0414">☀</div><div><b>Clima · 29 °C</b><span>Atardecer a las 18:52</span></div></div>
+  </div>
+
+  <div class="count glass" id="count">
+    <div class="kick" id="cKick">Cuenta regresiva</div>
+    <div class="game" id="cGame">GTA VI</div>
+    <div class="lead" id="cLead">Falta muy poco para el lanzamiento</div>
+    <div class="digits" id="digits">
+      <div class="cell"><span class="n" id="dD"><span>0</span></span><small>Días</small></div>
+      <div class="cell"><span class="n" id="dH"><span>00</span></span><small>Horas</small></div>
+      <div class="cell"><span class="n" id="dM"><span>00</span></span><small>Min</small></div>
+      <div class="cell sec"><span class="n" id="dS"><span>00</span></span><small>Seg</small></div>
+    </div>
+    <div class="date" id="cDate">19 · 11 · 2026 — 00:00<em>Medianoche en tu hora local · PS5 y Xbox Series X|S</em></div>
+  </div>
+</div>
+
+<div class="controls">
+  <button id="btnSound" type="button" aria-pressed="false">Sonido</button>
+  <button id="btnReplay" type="button">Repetir</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script>
+(() => {
+'use strict';
+const NS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs, parent) => { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+const $ = (id) => document.getElementById(id);
+let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ---------- build the 2D scene ----------
+for (let i = 0; i < 90; i++) el('circle', { cx: rnd() * 1600, cy: rnd() * 380, r: .6 + rnd() * 1.6, fill: '#fff', opacity: .3 + rnd() * .6, class: 'star' }, $('stars'));
+// synthwave-style cuts in the lower half of the sun
+for (let i = 0; i < 7; i++) { const y = 540 + i * 26; el('rect', { x: 0, y, width: 1600, height: 3 + i * 2.2 }, $('sunCuts')); }
+// skyline silhouette with lit windows
+const sky = $('skyline');
+for (let x = -20; x < 1620;) {
+  const w = 30 + rnd() * 70, center = Math.abs(x - 1080) < 260; const h = (center ? 90 : 30) + rnd() * (center ? 170 : 90);
+  if (Math.abs(x + w / 2 - 800) < 230 && rnd() < .7) { x += w * .6; continue; }
+  const g = el('g', { class: 'bld' }, sky);
+  el('rect', { x, y: 600 - h, width: w, height: h + 2, fill: center ? '#2b0d42' : '#3a1252' }, g);
+  for (let wy = 600 - h + 8; wy < 592; wy += 11) for (let wx = x + 5; wx < x + w - 6; wx += 9)
+    if (rnd() < .26) el('rect', { x: wx, y: wy, width: 4, height: 5, fill: rnd() < .7 ? '#ffd38a' : '#7ff2ff', opacity: .9, class: 'win' }, g);
+  if (rnd() < .22) el('rect', { x: x + 3, y: 600 - h - 3, width: w - 6, height: 3, fill: rnd() < .5 ? '#ff3d9a' : '#3ef2ff' }, g);
+  x += w + 2 + rnd() * 6;
+}
+// sun reflection on the sea
+for (let i = 0; i < 16; i++) { const y = 612 + i * i * 1.15; const w = 260 - i * 10 + rnd() * 30; el('rect', { x: 800 - w / 2, y, width: w, height: 2 + i * .25, rx: 1.5, fill: i < 6 ? '#ffb06a' : '#ff5aa0', opacity: .75 - i * .03, class: 'shim' }, $('shimmer')); }
+// birds
+for (let i = 0; i < 5; i++) { const b = el('path', { d: 'M-14 0 Q-7 -8 0 0 Q7 -8 14 0', class: 'bird' }, $('birds')); b.setAttribute('transform', `translate(${560 + i * 70 + rnd() * 40} ${300 + rnd() * 80}) scale(${.6 + rnd() * .5})`); }
+// palms
+function palm(x, h, lean, scale, flip) {
+  const g = el('g', { class: 'palm' }, $('palms'));
+  g.setAttribute('transform', `translate(${x} 900) scale(${flip ? -scale : scale} ${scale})`);
+  const sway = el('g', { class: 'sway' }, g);
+  const tx = lean, ty = -h;
+  el('path', { d: `M-16 0 C ${-10 + lean * .2} ${-h * .4}, ${lean * .7 - 6} ${-h * .8}, ${tx - 6} ${ty} L ${tx + 6} ${ty} C ${lean * .7 + 8} ${-h * .8}, ${12 + lean * .2} ${-h * .4}, 18 0 Z`, fill: '#160620' }, sway);
+  for (let r = 40; r < h - 20; r += 26) { const k = r / h; el('path', { d: `M${lean * k * k - 14 + 4 * k} ${-r} q14 6 28 0`, stroke: '#2a0c38', 'stroke-width': 3, fill: 'none' }, sway); }
+  const crown = el('g', { class: 'crown' }, sway); crown.setAttribute('transform', `translate(${tx} ${ty})`);
+  const angles = [-170, -140, -110, -70, -40, -10, 20, 200, 160];
+  angles.forEach((a, i) => {
+    const L = 170 + (i % 3) * 30, rad = a * Math.PI / 180, ex = Math.cos(rad) * L, ey = Math.sin(rad) * L * .55 + 60;
+    const mx = ex * .5, my = Math.min(ey, 0) - 50;
+    const leaf = el('path', { d: `M0 0 Q ${mx} ${my} ${ex} ${ey} Q ${mx * .9} ${my + 22} 0 10 Z`, fill: '#160620' }, crown);
+    leaf.classList.add('leaf');
+  });
+  return g;
+}
+palm(150, 640, 90, 1, false); palm(330, 470, -40, .85, false); palm(1460, 680, 70, 1, true); palm(1300, 460, -30, .8, true);
+
+// ---------- radio card bits ----------
+const eq = $('eq'); for (let i = 0; i < 28; i++) eq.appendChild(document.createElement('b'));
+const neon = $('neonWord'); neon.innerHTML = neon.textContent.split(' ').map(w => `<span class="w">${[...w].map(c => `<span>${c}</span>`).join('')}</span>`).join(' ');
+
+// ---------- ambient loops ----------
+gsap.to('.sway', { rotation: (i) => (i % 2 ? -2.2 : 2.2), transformOrigin: '50% 100%', duration: (i) => 3.4 + i * .4, yoyo: true, repeat: -1, ease: 'sine.inOut' });
+gsap.to('.leaf', { rotation: () => gsap.utils.random(-6, 6), transformOrigin: '0% 0%', duration: () => gsap.utils.random(1.4, 2.4), yoyo: true, repeat: -1, ease: 'sine.inOut' });
+gsap.to('.star', { opacity: () => gsap.utils.random(.1, .9), duration: () => gsap.utils.random(.8, 2.4), yoyo: true, repeat: -1, ease: 'sine.inOut', stagger: { each: .03, from: 'random' } });
+gsap.to('.shim', { scaleX: () => gsap.utils.random(.55, 1.2), x: () => gsap.utils.random(-14, 14), transformOrigin: '50% 50%', duration: () => gsap.utils.random(.7, 1.5), yoyo: true, repeat: -1, ease: 'sine.inOut' });
+gsap.to('.bird', { x: '+=60', y: '-=14', duration: 6, yoyo: true, repeat: -1, ease: 'sine.inOut', stagger: .4 });
+gsap.to('.win', { opacity: () => (Math.random() < .5 ? .25 : 1), duration: () => gsap.utils.random(1.5, 4), repeat: -1, yoyo: true, repeatDelay: () => gsap.utils.random(0, 3), stagger: { each: .01, from: 'random' } });
+const eqBars = gsap.utils.toArray('#eq b');
+gsap.to(eqBars, { scaleY: () => gsap.utils.random(1.2, 3.3), duration: () => gsap.utils.random(.18, .38), yoyo: true, repeat: -1, ease: 'sine.inOut', stagger: { each: .02, from: 'center' } });
+
+// ---------- countdown ----------
+const TARGET = new Date(2026, 10, 19, 0, 0, 0); // midnight, viewer's local time
+const pad = (n) => String(n).padStart(2, '0');
+const last = {};
+function setDigit(id, val) {
+  if (last[id] === val) return; const box = $(id);
+  const old = box.firstElementChild; const nu = document.createElement('span'); nu.textContent = val;
+  if (last[id] !== undefined && !reduce) {
+    box.style.position = 'relative'; old.style.position = 'absolute'; old.style.left = '0'; old.style.right = '0';
+    box.appendChild(nu);
+    gsap.fromTo(nu, { yPercent: -100, opacity: 0 }, { yPercent: 0, opacity: 1, duration: .45, ease: 'power3.out' });
+    gsap.to(old, { yPercent: 100, opacity: 0, duration: .45, ease: 'power3.in', onComplete: () => old.remove() });
+  } else { box.replaceChildren(nu); }
+  last[id] = val;
+}
+function tickCount() {
+  let ms = TARGET - Date.now();
+  if (ms <= 0) {
+    $('cKick').textContent = 'Ya disponible'; $('cLead').textContent = '¡Ya salió! La espera terminó.';
+    ['dD', 'dH', 'dM', 'dS'].forEach(id => setDigit(id, id === 'dD' ? '0' : '00')); return;
+  }
+  const s = Math.floor(ms / 1000);
+  setDigit('dD', String(Math.floor(s / 86400))); setDigit('dH', pad(Math.floor(s / 3600) % 24)); setDigit('dM', pad(Math.floor(s / 60) % 60)); setDigit('dS', pad(s % 60));
+  const d = Math.floor(s / 86400);
+  $('cLead').textContent = d >= 1 ? `${d === 1 ? 'Falta 1 día' : `Faltan ${d} días`} para el lanzamiento` : 'Es hoy. Últimas horas de espera';
+}
+tickCount(); setInterval(tickCount, 250);
+
+// ---------- the film (main timeline) ----------
+const isPortrait = () => innerHeight > innerWidth;
+function build() {
+  gsap.set(['#intro', '#radio', '#notes', '#count'], { clearProps: 'all' });
+  gsap.set('#neonWord span span', { clearProps: 'all' });
+  gsap.set('#scene', { scale: 1, transformOrigin: '50% 62%' });
+  const P = isPortrait();
+  const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+  // 1 · the sunset assembles
+  tl.fromTo('#scene', { opacity: 0 }, { opacity: 1, duration: 1.4, ease: 'power1.out' }, 0)
+    .fromTo('#sunG', { y: 260 }, { y: 0, duration: 3.6, ease: 'power2.out' }, 0)
+    .fromTo('#haloC', { opacity: 0, scale: .6, transformOrigin: '50% 50%' }, { opacity: 1, scale: 1, duration: 3.2 }, .4)
+    .fromTo('.bld', { y: 240 }, { y: 0, duration: 1.6, stagger: { each: .012, from: 'center' }, ease: 'expo.out' }, .9)
+    .fromTo('.palm', { y: 520, rotation: (i) => (i % 2 ? -8 : 8) }, { y: 0, rotation: 0, duration: 2, stagger: .15, ease: 'expo.out', transformOrigin: '50% 100%' }, 1.3)
+    .fromTo('.shim', { opacity: 0 }, { opacity: (i) => .75 - i * .03, duration: 1.4, stagger: .05 }, 1.8)
+  // 2 · neon title
+    .fromTo('#neonWord span span', { opacity: 0, y: 40, filter: 'blur(14px)', scale: 1.4 }, { opacity: 1, y: 0, filter: 'blur(0px)', scale: 1, duration: .9, stagger: .06, ease: 'back.out(1.8)' }, 2.6)
+    .fromTo('#introSub', { opacity: 0, letterSpacing: '1.2em' }, { opacity: 1, letterSpacing: '.5em', duration: 1.4 }, 3.4)
+    .to('#neonWord span span', { opacity: (i) => (i === 7 ? .2 : 1), duration: .06, repeat: 5, yoyo: true, ease: 'none' }, 4.6)
+    .to('#intro', { y: -60, opacity: 0, filter: 'blur(12px)', duration: .9, ease: 'power2.in' }, 6.2)
+    .to('#scene', { scale: 1.06, duration: 6, ease: 'sine.inOut' }, 5.6)
+  // 3 · radio card (glass, 3D tilt)
+    .fromTo('#radio', { opacity: 0, y: 160, rotationX: 48, rotationY: -14, scale: .82 }, { opacity: 1, y: 0, rotationX: 0, rotationY: 0, scale: 1, duration: 1.4, ease: 'expo.out' }, 6.9)
+    .fromTo(['#cover', '.live', '#station', '#song', '#artist', '#eq', '.bar', '.times', '#ctrl'], { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: .7, stagger: .07 }, 7.2)
+    .fromTo('#cover', { rotation: -10, scale: .7 }, { rotation: 0, scale: 1, duration: 1.1, ease: 'back.out(2)' }, 7.2)
+    .to('#play', { scale: .86, duration: .12, ease: 'power1.in' }, 8.6)
+    .add(() => { $('playIcon').innerHTML = '<rect x="3" y="1" width="6" height="24" rx="2" fill="#1a0a2a"/><rect x="15" y="1" width="6" height="24" rx="2" fill="#1a0a2a"/>'; }, 8.72)
+    .to('#play', { scale: 1, duration: .5, ease: 'back.out(3)' }, 8.72)
+    .fromTo('#barFill', { width: '30%' }, { width: '46%', duration: 4.5, ease: 'none' }, 8.7)
+    .to('#radio', { rotationY: 8, rotationX: -4, duration: 2.4, ease: 'sine.inOut' }, 9)
+  // 4 · card shifts, notifications pop in
+    .to('#radio', P ? { y: -175, scale: .78, rotationY: 0, rotationX: 0, duration: 1.1, ease: 'power3.inOut' } : { x: -210, scale: .9, rotationY: 14, rotationX: 0, duration: 1.1, ease: 'power3.inOut' }, 11.2)
+    .set('#notes', P ? { x: 0, y: 150 } : { x: 230, y: 0 }, 11.2)
+    .fromTo('.note', { opacity: 0, x: 80, scale: .9 }, { opacity: 1, x: 0, scale: 1, duration: .8, stagger: .45, ease: 'back.out(1.6)' }, 11.7)
+  // 5 · everything clears, camera pushes into the sun
+    .to('.note', { opacity: 0, x: 60, filter: 'blur(8px)', duration: .6, stagger: .08, ease: 'power2.in' }, 15)
+    .to('#radio', { opacity: 0, y: '-=80', rotationX: 30, filter: 'blur(10px)', duration: .8, ease: 'power2.in' }, 15.1)
+    .to('#scene', { scale: 1.22, duration: 2.4, ease: 'power2.inOut' }, 15.2)
+    .to('#sunG', { y: 40, duration: 2.4, ease: 'power2.inOut' }, 15.2)
+  // 6 · countdown
+    .fromTo('#count', { opacity: 0, y: 120, scale: .86, rotationX: 40, filter: 'blur(14px)' }, { opacity: 1, y: 0, scale: 1, rotationX: 0, filter: 'blur(0px)', duration: 1.5, ease: 'expo.out' }, 16.6)
+    .fromTo('#cKick', { opacity: 0, letterSpacing: '1em' }, { opacity: 1, letterSpacing: '.42em', duration: 1.2 }, 17)
+    .fromTo('#cGame', { opacity: 0, scale: 1.6, filter: 'blur(18px)' }, { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 1.2, ease: 'expo.out' }, 17.1)
+    .fromTo('#cLead', { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: .7 }, 17.6)
+    .fromTo('.cell', { opacity: 0, y: 40, rotationX: -70 }, { opacity: 1, y: 0, rotationX: 0, duration: .9, stagger: .1, ease: 'back.out(1.7)' }, 17.8)
+    .fromTo('#cDate', { opacity: 0 }, { opacity: 1, duration: .8 }, 18.5)
+    .to('#count', { y: -6, duration: 2.6, yoyo: true, repeat: -1, ease: 'sine.inOut' }, 19.4);
+  return tl;
+}
+let film = build();
+if (reduce) film.progress(1);
+$('btnReplay').onclick = () => { film.kill(); film = build(); };
+addEventListener('resize', () => { const t = film.time(); film.kill(); film = build(); film.time(t); });
+
+// ---------- soundtrack (WebAudio, starts on tap) ----------
+let audio = null;
+function startAudio() {
+  const ac = new (window.AudioContext || window.webkitAudioContext)();
+  const master = ac.createGain(); master.gain.value = .45; master.connect(ac.destination);
+  const delay = ac.createDelay(); delay.delayTime.value = .36; const fb = ac.createGain(); fb.gain.value = .3; delay.connect(fb); fb.connect(delay); delay.connect(master);
+  const beat = 60 / 96; const chords = [[45, 52, 57, 60, 64], [41, 48, 53, 57, 60], [43, 50, 55, 59, 62], [40, 47, 52, 55, 59]];
+  const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  const note = (f0, t0, dur, type, vol, cut, d) => { const o = ac.createOscillator(); o.type = type; o.frequency.value = f0; const f = ac.createBiquadFilter(); f.frequency.value = cut; const g = ac.createGain();
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + Math.min(.4, dur * .3)); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur); o.connect(f); f.connect(g); g.connect(master); if (d) g.connect(delay); o.start(t0); o.stop(t0 + dur + .05); };
+  const kick = (t0) => { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(120, t0); o.frequency.exponentialRampToValueAtTime(40, t0 + .25); g.gain.setValueAtTime(.65, t0); g.gain.exponentialRampToValueAtTime(.001, t0 + .3); o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + .32); };
+  let n = 0, next = ac.currentTime + .1;
+  const timer = setInterval(() => { while (next < ac.currentTime + .5) { const ch = chords[n % 4];
+    ch.slice(1).forEach(m => note(mtof(m), next, beat * 4.2, 'sawtooth', .03, 1400));
+    for (let i = 0; i < 8; i++) note(mtof(ch[0] - 12 + (i % 2 ? 12 : 0)), next + i * beat / 2, beat / 2 * .9, 'square', .055, 520);
+    if (n >= 1) for (let i = 0; i < 8; i++) note(mtof(ch[1 + (i * 3) % 4] + 12), next + i * beat / 2, beat / 2, 'triangle', .045, 3000, true);
+    if (n >= 2) for (let i = 0; i < 4; i++) kick(next + i * beat);
+    next += beat * 4; n++; } }, 120);
+  return { ac, timer };
+}
+const btnSound = $('btnSound');
+btnSound.onclick = () => {
+  if (!audio) { audio = startAudio(); btnSound.setAttribute('aria-pressed', 'true'); return; }
+  if (audio.ac.state === 'running') { audio.ac.suspend(); btnSound.setAttribute('aria-pressed', 'false'); } else { audio.ac.resume(); btnSound.setAttribute('aria-pressed', 'true'); }
+};
+window.__film = () => film;
+})();
+</script>
