@@ -168,7 +168,7 @@ const inf=document.getElementById('inf');
 document.getElementById('ib').addEventListener('click',()=>inf.classList.add('on'));
 document.getElementById('ic').addEventListener('click',()=>inf.classList.remove('on'));
 // cuenta regresiva: 7 días desde el estreno del Día 3 (18 nov 2026, ~3:00 p. m. hora de Lima)
-const END=new Date('2026-11-25T15:00:00-05:00').getTime();
+const END=new Date('2026-11-22T14:00:00-05:00').getTime();
 const pad=n=>String(n).padStart(2,'0');
 function tick(){let s=Math.max(0,Math.floor((END-Date.now())/1000));const d=Math.floor(s/86400);s-=d*86400;const h=Math.floor(s/3600);s-=h*3600;const m=Math.floor(s/60);s-=m*60;
   cD.textContent=d;cH.textContent=pad(h);cM.textContent=pad(m);cS.textContent=pad(s)}
