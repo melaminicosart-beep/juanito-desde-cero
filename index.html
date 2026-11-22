@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Estudio Juanito · Juanito desde Cero</title><meta name="description" content="Estudio Juanito: las películas hechas por Juanito y la comunidad de Juanito desde Cero. Película 1: Capitán Cartón vs Doctor Tijeras."><meta property="og:title" content="Estudio Juanito"><meta property="og:image" content="poster.jpg">
+<title>Estudio Juanito · Juanito desde Cero</title><meta name="description" content="Estudio Juanito: las películas hechas por Juanito y la comunidad de Juanito desde Cero. Película 1: Capitán Cartón vs Doctor Tijeras. Película 2: Cartón Man 2, la venganza del Doctor Tijeras."><meta property="og:title" content="Estudio Juanito"><meta property="og:image" content="poster.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -11,6 +11,7 @@
    LAYOUT: barra superior, gran portada, cuenta regresiva, fila de escenas, reproductor a pantalla completa */
 :root{color-scheme:dark;--bg:#0b0b0b;--ink:#f3f3f3;--mut:#a9a9a9;--red:#e50914;--yel:#ffd23f;--card:#181818}
 *{box-sizing:border-box;min-width:0}
+[hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Poppins,system-ui,sans-serif;overflow-x:clip}
 a{color:inherit}html{scroll-padding-top:72px}
 nav{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:22px;padding:14px max(4vw,16px);background:linear-gradient(#000,#0000)}
@@ -20,6 +21,7 @@ nav .links{display:flex;gap:18px;font-size:14px;color:#ddd}
 nav .tag{margin-left:auto;font-size:12px;font-weight:700;background:#2a2a2a;border:1px solid #444;border-radius:8px;padding:5px 10px;color:#ddd}
 .hero{position:relative;margin-top:-60px;padding:110px max(4vw,16px) 40px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,330px);gap:40px;align-items:end;min-height:620px;overflow:hidden}
 .hero::before{content:"";position:absolute;inset:0;background:url(bg.jpg) center/cover;opacity:.55;transform:scale(1.08)}
+.hero.p2::before{background-image:url(bg2.jpg)}
 .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#0b0b0b 0,#0b0b0bcc 38%,#0b0b0b33 70%),linear-gradient(#0b0b0b00 55%,#0b0b0b)}
 .hero>*{position:relative;z-index:1}
 .kick{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;color:#ddd}
@@ -72,7 +74,7 @@ footer{padding:30px max(4vw,16px) 50px;color:#777;font-size:13px;border-top:1px 
 #det.on{display:flex}
 .dbox{position:relative;width:100%;max-width:820px;background:#181818;border-radius:14px;padding:24px}
 .dbox .x{position:absolute;top:12px;right:12px;width:44px;height:44px;border-radius:50%;border:0;background:#2a2a2a;color:#fff;font-size:20px;cursor:pointer}
-.dtop{display:grid;grid-template-columns:160px minmax(0,1fr);gap:20px;align-items:end}
+.dtop{padding-right:40px;display:grid;grid-template-columns:160px minmax(0,1fr);gap:20px;align-items:end}
 .dtop img{width:100%;border-radius:8px}.dtop h3{margin:8px 0 6px;font-size:28px;line-height:1.1}.dtop p{color:#ccc;margin:0 0 16px}
 .dbox h4{margin:24px 0 10px;font-size:18px}
 @media(max-width:600px){.dtop{grid-template-columns:110px minmax(0,1fr)}.dtop h3{font-size:22px}}
@@ -116,63 +118,89 @@ footer{padding:30px max(4vw,16px) 50px;color:#777;font-size:13px;border-top:1px 
 
 <header class="hero" id="inicio">
   <div>
-    <div class="kick"><b>NUEVO</b> Película 1 · Estudio Juanito</div>
-    <h1><span class="a">Capitán Cartón</span><span class="v">vs</span><span class="b">Doctor Tijeras</span></h1>
-    <div class="meta"><span class="ok">Estreno</span><span>2026</span><span>Todo público</span><span>26 s</span><span>5 escenas</span></div>
-    <p class="syn">Un villano con tijeras por manos aparece en la ciudad de cartón y la destruye de un golpe. Solo Capitán Cartón puede detenerlo en una pelea épica a teletransportes y explosiones. Hecha desde un cuarto, con $0 al principio y la ayuda de toda la comunidad.</p>
+    <div class="kick" id="hK"><b>NUEVO</b> Película 1 · Estudio Juanito</div>
+    <h1 id="hT"><span class="a">Capitán Cartón</span><span class="v">vs</span><span class="b">Doctor Tijeras</span></h1>
+    <div class="meta" id="hM"><span class="ok">Estreno</span><span>2026</span><span>Todo público</span><span>30 s</span><span>5 escenas</span></div>
+    <p class="syn" id="hS">Un villano con tijeras por manos aparece en la ciudad de cartón y la destruye de un golpe. Solo Capitán Cartón puede detenerlo en una pelea épica a teletransportes y explosiones. Hecha desde un cuarto, con $0 al principio y la ayuda de toda la comunidad.</p>
     <div class="soc"><span class="vw">👁 <b id="vN">—</b> vistas</span><span class="stars" aria-hidden="true">★★★★★<i id="stF" style="width:0">★★★★★</i></span><span class="sc" id="sc">— <small>sin votos</small></span></div>
     <div class="soc"><button class="vote up" id="bUp" aria-pressed="false">👍 <span id="nUp">0</span></button><button class="vote dn" id="bDn" aria-pressed="false">👎 <span id="nDn">0</span></button></div>
     <p class="note" id="note" role="status"></p>
-    <div class="btns"><button class="btn play" data-t="0">▶ Reproducir</button><button class="btn info" id="ib">ⓘ Más información</button></div>
+    <div class="btns"><button class="btn play" data-t="0" id="hP">▶ Reproducir</button><button class="btn info" id="ib">ⓘ Más información</button></div>
   </div>
-  <div class="pc"><button class="pcard" data-t="0" aria-label="Ver la película"><img src="poster.jpg" alt="Póster: Capitán Cartón vs Doctor Tijeras"></button></div>
+  <div class="pc"><button class="pcard" data-t="0" id="hC" aria-label="Ver la película"><img id="hI" src="poster.jpg" alt="Póster: Capitán Cartón vs Doctor Tijeras"></button></div>
 </header>
 
-<section class="band" id="reparto"><h2>Actores de la película</h2><p class="sub">Película 1 · Capitán Cartón vs Doctor Tijeras</p><div class="team" id="cast1"></div>
-  <h2 style="margin-top:26px">Estudio Juanito</h2><p class="sub">Todo el equipo que se unió desde los comentarios.</p><div class="team" id="team"></div></section>
-<section class="band" id="peliculas"><h2>Películas</h2><p class="sub">En orden: la primera película de la serie y la que viene.</p>
+<section class="band" id="reparto"><h2>Reparto de la Película 2</h2><p class="sub">Cartón Man 2 · La venganza del Doctor Tijeras</p><div class="team" id="cast2"></div>
+  <h2 style="margin-top:26px">Reparto de la Película 1</h2><p class="sub">Capitán Cartón vs Doctor Tijeras</p><div class="team" id="cast1"></div>
+  <h2 style="margin-top:26px">Estudio Juanito</h2><p class="sub">Todo el equipo que se unió desde los comentarios.</p><div class="team" id="team"></div>
+  <h2 style="margin-top:26px">En las próximas películas</h2><p class="sub">Ya tienen su papel reservado.</p><div class="team" id="fut"></div></section>
+<section class="band" id="peliculas"><h2>Películas</h2><p class="sub">En orden, desde la primera.</p>
   <div class="movies">
     <button class="mv" id="m1" aria-label="Ver Película 1"><img src="poster.jpg" alt="Póster de la Película 1"><div class="mi"><b>Película 1</b><small>Capitán Cartón vs Doctor Tijeras</small></div></button>
-    <div class="mv lock" aria-label="Película 2, próximamente"><div class="q">?</div><div class="mi"><b>Película 2</b><small>Próximamente</small><div class="clock" id="clock"><div><b id="cD">7</b><span>días</span></div><div><b id="cH">00</b><span>h</span></div><div><b id="cM">00</b><span>min</span></div><div><b id="cS">00</b><span>seg</span></div></div></div></div>
+    <button class="mv" id="m2" hidden aria-label="Ver Película 2"><img src="poster2.jpg" alt="Póster de la Película 2"><div class="mi"><b>Película 2</b><small>Cartón Man 2: La venganza del Doctor Tijeras</small></div></button>
+    <div class="mv lock" id="m2l" aria-label="Película 2, se estrena hoy a las 2:00 p. m."><div class="q">?</div><div class="mi"><b>Película 2</b><small>Estreno: hoy, 2:00 p. m.</small><div class="clock" id="clock"><div><b id="cD">7</b><span>días</span></div><div><b id="cH">00</b><span>h</span></div><div><b id="cM">00</b><span>min</span></div><div><b id="cS">00</b><span>seg</span></div></div></div></div>
   </div></section>
 
 
 
 <footer>Estudio Juanito · hecho con la comunidad de "Juanito desde Cero" · 2026</footer>
 
-<div id="inf" role="dialog" aria-modal="true"><div><h3>Capitán Cartón vs Doctor Tijeras</h3><p style="color:#ccc">La primera película de Estudio Juanito, hecha durante la serie "Juanito desde Cero". Cada like, comentario y suscriptor sumó al presupuesto: una cámara, efectos KABUM, un celular nuevo y dos actores.</p><button class="btn info" id="ic">Cerrar</button></div></div>
+<div id="inf" role="dialog" aria-modal="true"><div><h3 id="iT">Capitán Cartón vs Doctor Tijeras</h3><p style="color:#ccc" id="iS">La primera película de Estudio Juanito, hecha durante la serie "Juanito desde Cero". Cada like, comentario y suscriptor sumó al presupuesto: una cámara, efectos KABUM, un celular nuevo y dos actores.</p><button class="btn info" id="ic">Cerrar</button></div></div>
 <div id="det" role="dialog" aria-modal="true"><div class="dbox"><button class="x" id="dx" aria-label="Cerrar">✕</button>
-  <div class="dtop"><img src="poster.jpg" alt=""><div><div class="kick"><b>PELÍCULA 1</b> 2026 · 5 escenas</div><h3>Capitán Cartón vs Doctor Tijeras</h3><p>El Doctor Tijeras destruye la ciudad de cartón y Capitán Cartón lo enfrenta en una pelea épica.</p><button class="btn play" data-t="0">▶ Reproducir</button></div></div>
+  <div class="dtop"><img id="dI" src="poster.jpg" alt=""><div><div class="kick" id="dK"><b>PELÍCULA 1</b> 2026 · 5 escenas</div><h3 id="dT">Capitán Cartón vs Doctor Tijeras</h3><p id="dS">El Doctor Tijeras destruye la ciudad de cartón y Capitán Cartón lo enfrenta en una pelea épica.</p><button class="btn play" data-t="0" id="dP">▶ Reproducir</button></div></div>
   <h4>Escenas</h4><div class="row" id="eps"></div></div></div>
-<div id="pl"><button id="cls" aria-label="Cerrar">✕</button><video id="vid" src="pelicula.mp4" controls playsinline preload="metadata" poster="poster.jpg"></video></div>
+<div id="pl"><button id="cls" aria-label="Cerrar">✕</button><video id="vid" src="pelicula1.mp4" controls playsinline preload="metadata" poster="poster.jpg"></video></div>
 
 <script>{
-const EPS=[["Escena 1","El héroe aparece",3.0,"e1.jpg"],["Escena 2","El gran salto",5.4,"e2.jpg"],["Escena 3","¡Llega el villano!",7.4,"e3.jpg"],["Escena 4","La pelea final",12.6,"e4.jpg"],["Escena 5","El final",19.6,"e5.jpg"]];
-document.getElementById('eps').innerHTML=EPS.map(([n,d,t,img])=>`<button class="ep" data-t="${t}"><img src="${img}" alt="${n}"><div><b>${n}</b><small>${d}</small></div></button>`).join('');
+const PRE=/[?&]preview/.test(location.search);
+const END=new Date('2026-11-22T14:00:00-05:00').getTime();
+const FILMS={
+ 1:{src:'pelicula1.mp4',poster:'poster.jpg',k:'<b>PELÍCULA 1</b> 2026 · 5 escenas',t:'Capitán Cartón vs Doctor Tijeras',s:'El Doctor Tijeras destruye la ciudad de cartón y Capitán Cartón lo enfrenta en una pelea épica.',
+   eps:[["Escena 1","El héroe aparece",3.0,"e1.jpg"],["Escena 2","El gran salto",5.4,"e2.jpg"],["Escena 3","¡Llega el villano!",7.4,"e3.jpg"],["Escena 4","La pelea final",12.6,"e4.jpg"],["Escena 5","El final",19.6,"e5.jpg"]]},
+ 2:{src:'pelicula2.mp4',poster:'poster2.jpg',k:'<b>PELÍCULA 2</b> 2026 · 6 escenas',t:'Cartón Man 2: La venganza del Doctor Tijeras',s:'El Doctor Tijeras vuelve más fuerte, mejora su mano con basura y destruye la ciudad otra vez. Cartón Man lo enfrenta en la batalla final.',
+   eps:[["Escena 1","El villano regresa",3.5,"f2e1.jpg"],["Escena 2","Su venganza",11.7,"f2e2.jpg"],["Escena 3","La ciudad de colores",17.6,"f2e3.jpg"],["Escena 4","Mejoras de basura",24.9,"f2e4.jpg"],["Escena 5","Mi ciudad, otra vez",32.3,"f2e5.jpg"],["Escena 6","La batalla final",38.5,"f2e6.jpg"],["Post-créditos","No te vayas...",67.2,"f2e7.jpg"]]}};
+let cur=1;
+function fillDet(n){const f=FILMS[n];cur=n;dI.src=f.poster;dK.innerHTML=f.k;dT.textContent=f.t;dS.textContent=f.s;
+  document.getElementById('eps').innerHTML=f.eps.map(([a,d,t,img])=>`<button class="ep" data-t="${t}"><img src="${img}" alt="${a}"><div><b>${a}</b><small>${d}</small></div></button>`).join('');
+  document.querySelectorAll('#eps [data-t]').forEach(b=>b.addEventListener('click',()=>open(+b.dataset.t)))}
+const dI=document.getElementById('dI'),dK=document.getElementById('dK'),dT=document.getElementById('dT'),dS=document.getElementById('dS');
 const CAST1=[["Capitán Cartón","El héroe","#d8a968"],["Doctor Tijeras","El villano","#6a2fa0"],["Juanito","Director y creador","#1aa39a"]];
-const TEAM=[["@FernandojoseRamosmorales","Actor · Cartón Man","#e8483f",1],["@griselcampoya2019","Actriz · Doctor Tijeras","#7b5bd6",1],["@johanaalejandrasierrazapata","Editora","#1aa39a"],["@miriamperez7827","Guionista","#e86aa6"],["@cris_67nosewey","Guionista","#3aa35a"],["@gerardofonseca9076","Actor","#f39c35"],["@ELREYEKSV","Actor","#3f6fb0"],["@JohnFacha","Actor","#2d8a5a"],["@rociosalhuahuarca4603","Actriz","#7f8a96"],["@patygonzalez6629","Actriz","#4f9e3f"],["@gabrielernestomaciastoledo1735","Actor","#3a3a46"],["@estebanyto123","Actor","#2f6b78"],["@Familiaaleyquispe","Actor","#c0392b"],["@el_panafox-e3i","Actor","#d9772b"],["@BrightEyes_pe","Actor","#8e5bd6"],["@angelita-t","Actriz","#e86aa6"]];
+const CAST2=[["@FernandojoseRamosmorales","Cartón Man","#e8483f",1],["@griselcampoya2019","Doctor Tijeras","#7b5bd6",1],["@NeoZonaGamer","Antihéroe","#2d8a5a"],["@gerardofonseca9076","Actor","#f39c35"],["@ELREYEKSV","Actor","#3f6fb0"],["@JohnFacha","Actor","#2d8a5a"],["@rociosalhuahuarca4603","Actriz","#7f8a96"],["@patygonzalez6629","Actriz","#4f9e3f"],["@gabrielernestomaciastoledo1735","Actor","#3a3a46"],["@estebanyto123","Actor","#2f6b78"],["@Familiaaleyquispe","Actor","#c0392b"],["@el_panafox-e3i","Actor","#d9772b"],["@BrightEyes_pe","Actor","#8e5bd6"],["@angelita-t","Actriz","#e86aa6"]];
+const FUT=[["@Zuny-w6o","Caballero","#8a8f99"],["@GeroGMB","Héroe","#e8483f"],["@GadielRosariopabon-w6u","Payaso","#e86aa6"],["@MercedesSánchezCondori","Farmea aura","#8e5bd6"],["@gerardofonseca9076","Protagonista · Cazadores de tormentas","#f39c35"]];
+const TEAM=[["@FernandojoseRamosmorales","Actor · Cartón Man","#e8483f",1],["@griselcampoya2019","Actriz · Doctor Tijeras","#7b5bd6",1],["@Juan-r6j3g","Subdirector","#e50914"],["@johanaalejandrasierrazapata","Editora","#1aa39a"],["@JUANMIGUELCASTIBLANCO","Editor","#2f6b78"],["@uri-xd-123","Edición y efectos","#3aa35a"],["@DilanRios-t4n","Edición y efectos","#3f6fb0"],["@meoxresee","Camarógrafo","#c0392b"],["@el_piojo_de_yoonchip_r5","Sonido","#d9772b"],["@AryenisPerez-g8t","Cocina","#f39c35"],["@alejandragonzalezcorrales863","Cuidadora del gato","#e86aa6"],["@FátimaVeglo","Espadachín · seguridad de la base","#8a8f99"],["@miriamperez7827","Guionista","#e86aa6"],["@cris_67nosewey","Guionista","#3aa35a"],["@gerardofonseca9076","Actor","#f39c35"],["@ELREYEKSV","Actor","#3f6fb0"],["@JohnFacha","Actor","#2d8a5a"],["@rociosalhuahuarca4603","Actriz","#7f8a96"],["@patygonzalez6629","Actriz","#4f9e3f"],["@gabrielernestomaciastoledo1735","Actor","#3a3a46"],["@estebanyto123","Actor","#2f6b78"],["@Familiaaleyquispe","Actor","#c0392b"],["@el_panafox-e3i","Actor","#d9772b"],["@BrightEyes_pe","Actor","#8e5bd6"],["@angelita-t","Actriz","#e86aa6"]];
 const ini=n=>(n.replace(/^@/,'')[0]||'?').toUpperCase();
 const mem=([n,r,c,st])=>`<div class="mem${st?' star2':''}"><span class="av" style="background:${c}">${ini(n)}</span><div><b>${n}</b><small>${st?'⭐ ':''}${r}</small></div></div>`;
-document.getElementById('cast1').innerHTML=CAST1.map(mem).join('');document.getElementById('team').innerHTML=TEAM.map(mem).join('');
+document.getElementById('cast1').innerHTML=CAST1.map(mem).join('');document.getElementById('cast2').innerHTML=CAST2.map(mem).join('');document.getElementById('fut').innerHTML=FUT.map(mem).join('');document.getElementById('team').innerHTML=TEAM.map(mem).join('');
 const det=document.getElementById('det');
-document.getElementById('m1').addEventListener('click',()=>det.classList.add('on'));
+document.getElementById('m1').addEventListener('click',()=>{fillDet(1);det.classList.add('on')});
+document.getElementById('m2').addEventListener('click',()=>{fillDet(2);det.classList.add('on')});
 document.getElementById('dx').addEventListener('click',()=>det.classList.remove('on'));
 det.addEventListener('click',e=>{if(e.target===det)det.classList.remove('on')});
 const pl=document.getElementById('pl'),v=document.getElementById('vid');
-function open(t){pl.classList.add('on');try{v.currentTime=t}catch(e){}const p=v.play();if(p&&p.catch)p.catch(()=>{})}
+function open(t,n){if(n)cur=n;const want=FILMS[cur].src;if(v.getAttribute('src')!==want){v.src=want;v.poster=FILMS[cur].poster}pl.classList.add('on');try{v.currentTime=t}catch(e){}const p=v.play();if(p&&p.catch)p.catch(()=>{})}
 function close(){v.pause();pl.classList.remove('on')}
-document.querySelectorAll('[data-t]').forEach(b=>b.addEventListener('click',()=>open(+b.dataset.t)));
+['hP','hC'].forEach(i=>document.getElementById(i).addEventListener('click',()=>open(0,HERO)));
+document.getElementById('dP').addEventListener('click',()=>open(0));
+let HERO=1;fillDet(1);
 document.getElementById('cls').addEventListener('click',close);
 addEventListener('keydown',e=>{if(e.key==='Escape'){if(pl.classList.contains('on'))close();else{det.classList.remove('on');inf.classList.remove('on')}}});
 const inf=document.getElementById('inf');
 document.getElementById('ib').addEventListener('click',()=>inf.classList.add('on'));
 document.getElementById('ic').addEventListener('click',()=>inf.classList.remove('on'));
-// cuenta regresiva: 7 días desde el estreno del Día 3 (18 nov 2026, ~3:00 p. m. hora de Lima)
-const END=new Date('2026-11-22T14:00:00-05:00').getTime();
+// estreno de la Película 2: hoy 22 nov 2026, 2:00 p. m. hora de Lima
 const pad=n=>String(n).padStart(2,'0');
-function tick(){let s=Math.max(0,Math.floor((END-Date.now())/1000));const d=Math.floor(s/86400);s-=d*86400;const h=Math.floor(s/3600);s-=h*3600;const m=Math.floor(s/60);s-=m*60;
-  cD.textContent=d;cH.textContent=pad(h);cM.textContent=pad(m);cS.textContent=pad(s)}
 const cD=document.getElementById('cD'),cH=document.getElementById('cH'),cM=document.getElementById('cM'),cS=document.getElementById('cS');
+let rel=false;
+function release(){rel=true;HERO=2;document.getElementById('m2').hidden=false;document.getElementById('m2l').hidden=true;
+  document.getElementById('hK').innerHTML='<b>ESTRENO</b> Película 2 · Estudio Juanito';
+  document.getElementById('hT').innerHTML='<span class="a">Cartón Man 2</span><span class="v">la venganza del</span><span class="b">Doctor Tijeras</span>';
+  document.getElementById('hM').innerHTML='<span class="ok">Nuevo</span><span>2026</span><span>Todo público</span><span>1 min 17 s</span><span>6 escenas + post-créditos</span>';
+  document.getElementById('hS').textContent='El Doctor Tijeras vuelve con una mano mejorada con basura y destruye la ciudad otra vez. Cartón Man lo enfrenta en la batalla final. Hecha con todo el equipo que se unió desde los comentarios.';
+  document.getElementById('hI').src='poster2.jpg';document.getElementById('hI').alt='Póster: Cartón Man 2';
+  document.getElementById('iT').textContent='Cartón Man 2: La venganza del Doctor Tijeras';document.getElementById('iS').textContent='La segunda película de Estudio Juanito. Con subdirector, editores, camarógrafo, sonido, cocina y hasta una cuidadora para el gato: todo el equipo llegó desde los comentarios, y cada like, comentario y suscriptor pagó la batalla final.';
+  document.querySelector('.hero').classList.add('p2')}
+function tick(){if(rel)return;if(PRE||Date.now()>=END){release();return}let s=Math.max(0,Math.floor((END-Date.now())/1000));const d=Math.floor(s/86400);s-=d*86400;const h=Math.floor(s/3600);s-=h*3600;const m=Math.floor(s/60);s-=m*60;
+  cD.textContent=d;cH.textContent=pad(h);cM.textContent=pad(m);cS.textContent=pad(s)}
 tick();setInterval(tick,1000);
 
 // ===== vistas, likes y comentarios (compartidos) =====
