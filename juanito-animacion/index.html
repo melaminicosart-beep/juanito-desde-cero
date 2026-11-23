@@ -1,0 +1,530 @@
+<title>Juanito desde Cero</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Caveat:wght@700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+  /* Layout: video-editor shell (header · viewer + scene list · transport · timeline) around a fixed 1920×1080 stage scaled to fit */
+  :root {
+    --app: #101114;
+    --panel: #17181c;
+    --panel-2: #1e2026;
+    --line: #2c2f37;
+    --text: #eceef3;
+    --dim: #8a8f9c;
+    --playhead: #ff4d5e;
+    --ui-accent: #ffb547;
+    --display: "Bricolage Grotesque", "Arial Black", system-ui, sans-serif;
+    --hand: "Caveat", "Segoe Script", cursive;
+    --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body { background: var(--app); color: var(--text); font-family: var(--body); overflow: hidden; }
+  button { font: inherit; color: inherit; }
+
+  .app { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto auto; }
+  .top { display: flex; align-items: center; gap: 14px; padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+    background: var(--panel); border-bottom: 1px solid var(--line); min-width: 0; }
+  .logo { display: flex; align-items: center; gap: 8px; font: 700 14px var(--body); letter-spacing: .02em; flex: none; }
+  .logo i { width: 18px; height: 18px; border-radius: 5px; background: conic-gradient(from 200deg, #ffb547, #ff4d5e, #5ad1ff, #ffb547); }
+  .menu { display: flex; gap: 14px; font-size: 12px; color: var(--dim); }
+  .proj { flex: 1; min-width: 0; text-align: center; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .proj span { color: var(--dim); font-weight: 400; }
+  .tbtn { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 7px 11px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .tbtn:hover { border-color: #444955; }
+  .tbtn:focus-visible, .tl:focus-visible, .scene:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 2px; }
+  .tbtn[aria-pressed="true"] { color: var(--ui-accent); border-color: var(--ui-accent); }
+
+  .work { display: grid; grid-template-columns: minmax(0, 1fr) 250px; min-height: 0; }
+  .viewer { position: relative; display: grid; place-items: center; padding: 18px; overflow: hidden; min-width: 0; min-height: 0; background: #0b0c0e; }
+  .screen { position: relative; width: 320px; height: 180px; flex: none; overflow: hidden; background: #000; box-shadow: 0 0 0 1px #24262c, 0 30px 60px rgba(0, 0, 0, .5); }
+  .side { background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; padding: 14px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .side h4 { margin: 0 0 6px; font: 600 11px var(--body); letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
+  .scene { display: grid; grid-template-columns: 6px 1fr auto; gap: 10px; align-items: center; text-align: left; background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 8px; cursor: pointer; }
+  .scene:hover { background: var(--panel-2); }
+  .scene.on { background: var(--panel-2); border-color: var(--line); }
+  .scene i { height: 28px; border-radius: 3px; }
+  .scene b { font-size: 12.5px; font-weight: 600; display: block; }
+  .scene small { font-size: 11px; color: var(--dim); }
+  .scene em { font: 500 11px var(--mono); font-style: normal; color: var(--dim); }
+  .note-ex { margin-top: auto; font-size: 11px; line-height: 1.45; color: var(--dim); border-top: 1px solid var(--line); padding-top: 10px; }
+
+  .transport { display: flex; align-items: center; gap: 10px; padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+    background: var(--panel); border-top: 1px solid var(--line); flex-wrap: wrap; }
+  .tc { font: 500 15px var(--mono); font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+  .tc span { color: var(--dim); }
+  .play { width: 38px; height: 34px; display: grid; place-items: center; padding: 0; }
+  .spacer { flex: 1; }
+  .hint { font-size: 12px; color: var(--dim); }
+  @media (max-width: 600px) { .hint { display: none; } .tc { font-size: 13px; } }
+
+  .timeline { background: var(--panel); border-top: 1px solid var(--line); padding-block: 8px 12px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .tl-scroll { overflow-x: auto; }
+  .tl { position: relative; min-width: 640px; display: grid; grid-template-columns: 44px 1fr; row-gap: 5px; cursor: pointer; user-select: none; touch-action: none; }
+  .tl .lab { font: 600 10px var(--mono); color: var(--dim); display: flex; align-items: center; }
+  .ruler { position: relative; height: 18px; border-bottom: 1px solid var(--line); }
+  .ruler span { position: absolute; top: 0; font: 500 10px var(--mono); color: var(--dim); transform: translateX(-50%); }
+  .ruler span::after { content: ""; position: absolute; left: 50%; top: 13px; height: 5px; width: 1px; background: #444955; }
+  .track { position: relative; height: 34px; background: #121317; border-radius: 6px; overflow: hidden; }
+  .clip { position: absolute; top: 2px; bottom: 2px; border-radius: 5px; padding: 0 8px; font: 600 11px/30px var(--body); color: #121317; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .clip.t2 { background: rgba(255, 255, 255, .1) !important; color: var(--text); border: 1px solid rgba(255, 255, 255, .14); font-weight: 500; }
+  #wave { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .head { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--playhead); pointer-events: none; left: 44px; }
+  .head::before { content: ""; position: absolute; top: -2px; left: -6px; border: 7px solid transparent; border-top: 9px solid var(--playhead); }
+
+  body.only .top, body.only .side, body.only .timeline { display: none; }
+  body.only .work { grid-template-columns: 1fr; }
+  @media (max-width: 900px) { .side { display: none; } .work { grid-template-columns: 1fr; } .menu { display: none; } .viewer { padding: 10px; } }
+
+  /* ---------------- the 1920×1080 stage ---------------- */
+  #stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: hidden; color: #fff; font-family: var(--body);
+    --ink: #0d0b12; --glass: rgba(24, 20, 34, .5); }
+  #bg { position: absolute; inset: 0; width: 1920px; height: 1080px; }
+  .scn { position: absolute; inset: 0; visibility: hidden; opacity: 0; perspective: 1600px; }
+  .w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .08em; margin-bottom: -.08em; }
+  .chr { display: inline-block; will-change: transform; }
+
+  /* intro */
+  #intro { visibility: visible; opacity: 1; }
+  .zero { position: absolute; left: 960px; top: 540px; width: 520px; height: 520px; margin: -260px 0 0 -260px; display: grid; place-items: center; }
+  .zero svg { position: absolute; inset: 0; }
+  .zero b { font: 800 400px/1 var(--display); letter-spacing: -.04em; background: linear-gradient(180deg, #fff 30%, #ffb547); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .ititle { position: absolute; left: 860px; top: 330px; }
+  .ititle .big { font: 800 196px/1 var(--display); letter-spacing: -.035em; }
+  .ititle .hand { font: 700 132px/1 var(--hand); color: #ffb547; margin: -18px 0 0 8px; text-shadow: 0 8px 40px rgba(255, 181, 71, .35); }
+  .ikick { position: absolute; left: 870px; top: 720px; font: 600 24px var(--body); letter-spacing: .4em; text-transform: uppercase; color: rgba(255, 255, 255, .7); white-space: nowrap; }
+
+  /* chapter */
+  .wipe { position: absolute; inset: 0; z-index: 5; }
+  .wipe::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .25)); }
+  .left { position: absolute; left: 140px; top: 190px; width: 860px; }
+  .num { font: 800 230px/.85 var(--display); color: transparent; -webkit-text-stroke: 2.5px var(--acc); letter-spacing: -.03em; }
+  .kick { font: 600 22px var(--body); letter-spacing: .4em; text-transform: uppercase; color: var(--acc); margin-top: 30px; }
+  .ttl { font: 800 104px/1.02 var(--display); letter-spacing: -.03em; margin-top: 14px; text-wrap: balance; }
+  .sub { font: 400 34px/1.35 var(--body); color: rgba(255, 255, 255, .72); margin-top: 24px; max-width: 760px; }
+  .prog { position: absolute; left: 140px; bottom: 140px; width: 780px; }
+  .prog .row { display: flex; justify-content: space-between; align-items: baseline; font: 600 20px var(--body); letter-spacing: .14em; text-transform: uppercase; color: rgba(255, 255, 255, .6); }
+  .prog .row b { font: 800 54px/1 var(--display); letter-spacing: -.02em; color: #fff; font-variant-numeric: tabular-nums; }
+  .prog .trk { height: 12px; border-radius: 12px; background: rgba(255, 255, 255, .1); margin-top: 16px; overflow: hidden; }
+  .prog .fill { height: 100%; width: 0; border-radius: 12px; background: var(--acc); box-shadow: 0 0 24px var(--acc); }
+  .cards { position: absolute; right: 140px; top: 170px; width: 660px; display: flex; flex-direction: column; gap: 28px; transform-style: preserve-3d; }
+  .card { display: flex; gap: 26px; align-items: center; padding: 30px 34px; border-radius: 34px; background: var(--glass); border: 1px solid rgba(255, 255, 255, .18);
+    box-shadow: 0 40px 80px -24px rgba(0, 0, 0, .7), inset 0 1px 0 rgba(255, 255, 255, .22); backdrop-filter: blur(26px) saturate(150%); -webkit-backdrop-filter: blur(26px) saturate(150%); }
+  .card .ic { flex: none; width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center; font: 800 36px var(--display); color: var(--ink); background: var(--acc); box-shadow: 0 0 34px color-mix(in srgb, var(--acc) 60%, transparent); }
+  .card small { display: block; font: 700 18px var(--body); letter-spacing: .22em; text-transform: uppercase; color: var(--acc); }
+  .card p { margin: 8px 0 0; font: 600 33px/1.25 var(--body); }
+  .chtag { position: absolute; right: 140px; bottom: 140px; font: 600 20px var(--body); letter-spacing: .3em; text-transform: uppercase; color: rgba(255, 255, 255, .45); }
+
+  /* montage + end */
+  #montage .mt { position: absolute; left: 140px; top: 110px; }
+  #montage .mt b { display: block; font: 800 96px/1 var(--display); letter-spacing: -.03em; }
+  #montage .mt .hand2 { display: block; font: 700 64px/1 var(--hand); color: #ffb547; margin-top: 6px; }
+  #montage .cnt { position: absolute; left: 1000px; top: 96px; text-align: left; font: 600 20px var(--body); letter-spacing: .25em; text-transform: uppercase; color: rgba(255, 255, 255, .6); }
+  #montage .cnt b { display: block; font: 800 150px/1 var(--display); color: #fff; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+  #chart { position: absolute; inset: 0; width: 1920px; height: 1080px; overflow: visible; }
+  #chart .pl { font: 600 22px var(--body); fill: #fff; }
+  #chart .pv { font: 800 26px var(--display); }
+  .avatar { position: absolute; width: 150px; height: 220px; margin-left: -75px; margin-top: -214px; }
+  #end .etitle { position: absolute; left: 0; right: 0; top: 300px; text-align: center; }
+  #end .etitle .big { font: 800 230px/1 var(--display); letter-spacing: -.04em; }
+  #end .etitle .hand { font: 700 150px/1 var(--hand); color: #ffb547; margin-top: -30px; text-shadow: 0 8px 50px rgba(255, 181, 71, .4); }
+  #end .ek { position: absolute; left: 0; right: 0; top: 790px; text-align: center; font: 600 26px var(--body); letter-spacing: .5em; text-transform: uppercase; color: rgba(255, 255, 255, .75); }
+  #black { position: absolute; inset: 0; background: #000; pointer-events: none; z-index: 20; }
+
+  body.render { background: #000; }
+  body.render .app { display: none; }
+  body.render #stage { position: fixed; transform: none !important; }
+
+  /* ---------------- Juanito desde Cero · stage ---------------- */
+  #stage { --yellow: #ffd23f; --teal: #2ec4b6; --cyan: #29d3ff; --red: #ff4d5e; --card: #12161f; }
+  .bgimg { position: absolute; inset: -80px; width: calc(100% + 160px); height: calc(100% + 160px); object-fit: cover; filter: blur(46px) saturate(1.3) brightness(.42); opacity: 0; }
+  .shade { position: absolute; inset: 0; background: radial-gradient(120% 90% at 30% 40%, rgba(10, 12, 20, .15), rgba(5, 6, 10, .75)); }
+  .scn { position: absolute; inset: 0; visibility: hidden; opacity: 0; perspective: 1800px; }
+  .w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .1em; margin-bottom: -.1em; }
+  .chr { display: inline-block; }
+  .phone { position: absolute; left: 1210px; top: 96px; width: 500px; height: 889px; border-radius: 46px; overflow: hidden; background: #000;
+    box-shadow: 0 0 0 10px #0b0d12, 0 0 0 11px rgba(255, 255, 255, .18), 0 60px 120px -20px rgba(0, 0, 0, .8); transform-style: preserve-3d; }
+  .phone img { width: 100%; height: 100%; object-fit: cover; display: block; transform-origin: 50% 40%; }
+  .phone .glint { position: absolute; inset: 0; background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, .22) 48%, transparent 60%); transform: translateX(-120%); }
+  .dleft { position: absolute; left: 150px; top: 120px; width: 960px; }
+  .dtag { display: inline-flex; align-items: center; gap: 14px; font: 800 30px var(--body); letter-spacing: .18em; text-transform: uppercase; color: #0b0d12; background: var(--yellow); padding: 12px 22px; border-radius: 14px; }
+  .dnum { font: 800 250px/.86 var(--display); letter-spacing: -.05em; margin-top: 24px; }
+  .dnum .w:last-child { color: var(--yellow); }
+  .dtitle { font: 800 60px/1.08 var(--display); letter-spacing: -.02em; margin-top: 18px; text-wrap: balance; max-width: 940px; }
+  .facts { display: flex; flex-direction: column; gap: 14px; margin-top: 34px; }
+  .fact { display: flex; align-items: center; gap: 18px; padding: 16px 24px; border-radius: 20px; background: rgba(15, 18, 28, .62); border: 1px solid rgba(255, 255, 255, .14);
+    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); font: 600 30px/1.25 var(--body); width: fit-content; max-width: 940px; }
+  .fact b { font-size: 34px; }
+  .budget { position: absolute; left: 720px; top: 104px; display: flex; align-items: center; gap: 18px; padding: 16px 26px; border-radius: 18px; background: #0b0d12; border: 1px solid rgba(255, 255, 255, .16); box-shadow: 0 20px 40px rgba(0, 0, 0, .5); }
+  .budget small { font: 800 20px var(--body); letter-spacing: .22em; color: rgba(255, 255, 255, .75); }
+  .budget b { font: 800 50px/1 var(--display); color: var(--yellow); font-variant-numeric: tabular-nums; min-width: 4.2ch; }
+  .views { position: absolute; left: 1210px; top: 1000px; width: 500px; text-align: center; font: 600 22px var(--body); color: rgba(255, 255, 255, .7); letter-spacing: .04em; }
+  .dots7 { position: absolute; left: 150px; right: 800px; bottom: 50px; display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; }
+  .dots7 div { height: 6px; border-radius: 6px; background: rgba(255, 255, 255, .14); overflow: hidden; }
+  .dots7 i { display: block; height: 100%; width: 0; background: var(--yellow); }
+
+  /* intro */
+  #intro .box { position: absolute; left: 960px; top: 560px; width: 340px; height: 260px; margin: -130px 0 0 -170px; }
+  #intro .ttl { position: absolute; left: 0; right: 0; top: 190px; text-align: center; font: 800 220px/1 var(--display); letter-spacing: -.03em; }
+  #intro .ttl .y { color: var(--yellow); }
+  #intro .isub { position: absolute; left: 0; right: 0; top: 430px; text-align: center; font: 700 110px/1 var(--hand); color: var(--cyan); text-shadow: 0 8px 40px rgba(41, 211, 255, .35); }
+  #intro .meta { position: absolute; left: 0; right: 0; top: 800px; display: flex; justify-content: center; gap: 22px; }
+  #intro .meta div { font: 700 30px var(--body); padding: 16px 28px; border-radius: 999px; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .18); }
+  #intro .meta b { color: var(--yellow); }
+  #intro .phoneI { position: absolute; width: 300px; height: 533px; border-radius: 30px; overflow: hidden; box-shadow: 0 0 0 6px #0b0d12, 0 40px 80px rgba(0, 0, 0, .6); }
+  #intro .phoneI img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* movies */
+  #movies .mhead { position: absolute; left: 0; right: 0; top: 70px; text-align: center; }
+  #movies .mhead small { font: 800 24px var(--body); letter-spacing: .4em; color: var(--yellow); }
+  #movies .mhead div { font: 800 96px/1.05 var(--display); letter-spacing: -.03em; margin-top: 10px; }
+  .poster { position: absolute; top: 250px; width: 430px; height: 645px; border-radius: 24px; overflow: hidden; box-shadow: 0 50px 100px -20px rgba(0, 0, 0, .85), 0 0 0 1px rgba(255, 255, 255, .15); }
+  .poster img { width: 100%; height: 100%; object-fit: cover; }
+  .poster.p1 { left: 470px; } .poster.p2 { left: 1020px; }
+  .strip { position: absolute; left: 0; top: 930px; height: 130px; display: flex; gap: 14px; will-change: transform; }
+  .strip img { height: 130px; width: 84px; object-fit: cover; border-radius: 10px; opacity: .85; }
+  .pcap { position: absolute; top: 905px; width: 430px; text-align: center; font: 700 24px var(--body); color: rgba(255, 255, 255, .8); }
+
+  /* next + end */
+  #next .k { position: absolute; left: 0; right: 0; top: 300px; text-align: center; font: 800 26px var(--body); letter-spacing: .45em; color: var(--cyan); }
+  #next .t { position: absolute; left: 0; right: 0; top: 360px; text-align: center; font: 800 150px/1 var(--display); letter-spacing: -.04em; }
+  #next .nsub { position: absolute; left: 0; right: 0; top: 560px; text-align: center; font: 600 38px var(--body); color: rgba(255, 255, 255, .75); }
+  #next .d8 { position: absolute; left: 50%; top: 700px; transform: translateX(-50%); font: 800 34px var(--body); color: #0b0d12; background: var(--yellow); padding: 18px 34px; border-radius: 18px; white-space: nowrap; }
+  #end .ttl { position: absolute; left: 0; right: 0; top: 300px; text-align: center; font: 800 230px/1 var(--display); letter-spacing: -.03em; }
+  #end .ttl .y { color: var(--yellow); }
+  #end .isub { position: absolute; left: 0; right: 0; top: 540px; text-align: center; font: 700 120px/1 var(--hand); color: var(--cyan); }
+  #end .h { position: absolute; left: 0; right: 0; top: 780px; text-align: center; font: 700 34px var(--body); color: rgba(255, 255, 255, .8); letter-spacing: .06em; }
+  #black { position: absolute; inset: 0; background: #000; pointer-events: none; z-index: 20; }
+  body.render { background: #000; }
+  body.render .app { display: none; }
+  body.render #stage { position: fixed; transform: none !important; }
+</style>
+
+<div class="app" id="app">
+  <header class="top">
+    <div class="logo"><i></i>Montaje</div>
+    <nav class="menu" aria-hidden="true"><span>Archivo</span><span>Editar</span><span>Clip</span><span>Color</span><span>Audio</span><span>Exportar</span></nav>
+    <div class="proj">Juanito desde Cero <span>· Días 1 al 7 · 1920×1080 · 30 fps</span></div>
+    <button class="tbtn" id="btnSound" type="button" aria-pressed="false">Sonido</button>
+    <button class="tbtn" id="btnOnly" type="button" aria-pressed="false">Solo video</button>
+  </header>
+  <div class="work">
+    <div class="viewer"><div class="screen" id="screen"></div></div>
+    <aside class="side" aria-label="Escenas">
+      <h4>Escenas</h4>
+      <div id="sceneList" style="display:flex;flex-direction:column;gap:4px"></div>
+      <p class="note-ex">Hecho con los 7 shorts del canal y las imágenes de la web del Estudio Juanito.</p>
+    </aside>
+  </div>
+  <div class="transport">
+    <button class="tbtn" id="btnStart" type="button" aria-label="Ir al inicio">⏮</button>
+    <button class="tbtn" id="btnBack" type="button" aria-label="Retroceder 5 segundos">−5 s</button>
+    <button class="tbtn play" id="btnPlay" type="button" aria-label="Reproducir"></button>
+    <button class="tbtn" id="btnFwd" type="button" aria-label="Avanzar 5 segundos">+5 s</button>
+    <div class="tc" id="tc"></div>
+    <div class="spacer"></div>
+    <span class="hint">Espacio: reproducir · ← →: mover</span>
+  </div>
+  <div class="timeline">
+    <div class="tl-scroll">
+      <div class="tl" id="tl" tabindex="0" role="slider" aria-label="Línea de tiempo" aria-valuemin="0" aria-valuemax="108" aria-valuenow="0">
+        <div></div><div class="ruler" id="ruler"></div>
+        <div class="lab">V2</div><div class="track" id="trkV2"></div>
+        <div class="lab">V1</div><div class="track" id="trkV1"></div>
+        <div class="lab">A1</div><div class="track"><canvas id="wave"></canvas></div>
+        <div class="head" id="head"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="stage">
+  <div id="bgs"></div>
+  <div class="shade"></div>
+
+  <section class="scn" id="intro">
+    <div class="phoneI" id="ip1" style="left:615px;top:490px;width:230px;height:409px"><img src="img/dia1.jpg" alt=""></div>
+    <div class="phoneI" id="ip2" style="left:845px;top:465px;width:230px;height:409px"><img src="img/dia4.jpg" alt=""></div>
+    <div class="phoneI" id="ip3" style="left:1075px;top:490px;width:230px;height:409px"><img src="img/dia7.jpg" alt=""></div>
+    <div class="ttl split" style="top:70px">JUANITO</div>
+    <div class="isub" id="isub" style="top:285px">desde Cero</div>
+    <div class="meta" style="top:930px"><div><b>7</b> días</div><div><b>2</b> películas</div><div>Empezó con <b>$0</b></div></div>
+  </section>
+
+  <div id="days"></div>
+
+  <section class="scn" id="movies">
+    <div class="mhead"><small>ESTUDIO JUANITO PRESENTA</small><div class="split">2 películas en 7 días</div></div>
+    <div class="poster p1"><img src="img/poster1.jpg" alt="Capitán Cartón vs Doctor Tijeras"></div>
+    <div class="poster p2"><img src="img/poster2.jpg" alt="Cartón Man 2: La venganza del Doctor Tijeras"></div>
+    <div class="strip" id="strip"></div>
+  </section>
+
+  <section class="scn" id="next">
+    <div class="k">PRÓXIMAMENTE · PELÍCULA 3</div>
+    <div class="t split">Cazadores de tormentas</div>
+    <div class="nsub">Una idea que salió de los comentarios</div>
+    <div class="d8">▶ Sígueme para el Día 8</div>
+  </section>
+
+  <section class="scn" id="end">
+    <div class="ttl split">JUANITO</div>
+    <div class="isub" id="esub">desde Cero</div>
+    <div class="h" id="eh">@JuanitoDesdeCero · un estudio de cine hecho desde un cuarto</div>
+  </section>
+
+  <div id="black"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script>
+(() => {
+'use strict';
+const FPS = 30;
+// Datos sacados de los 7 shorts del canal @JuanitoDesdeCero
+const DIAS = [
+  { titulo: 'Voy a ganarle a Marvel con $0', img: 'img/dia1.jpg', presupuesto: 0, vistas: '1,3 K',
+    hechos: [['📦', 'Empieza con $0 y una caja de cartón'], ['🎬', 'Quiere un estudio de cine en su cuarto'], ['❤️', 'Like +$1 · comentario +$5 · suscriptor +$20']] },
+  { titulo: 'Compré mi primera cámara con $522', img: 'img/dia2.jpg', presupuesto: 522, vistas: '2,7 K',
+    hechos: [['💰', 'La comunidad juntó $522'], ['📷', 'Ganó la cámara en la votación'], ['🦸', 'Contrata a Capitán Cartón · escenas 2 de 5']] },
+  { titulo: 'Contraté a un VILLANO y destruyó la ciudad', img: 'img/dia3.jpg', presupuesto: 843, vistas: '3,6 K',
+    hechos: [['📱', 'Celular nuevo y Pack KABUM de explosiones'], ['😈', 'Llega el Doctor Tijeras'], ['🎬', '¡Película 1 terminada! 5 de 5 escenas']] },
+  { titulo: 'Metí a TODOS al estudio y elegimos el nombre', img: 'img/dia4.jpg', presupuesto: 36, vistas: '1,3 K',
+    hechos: [['🏠', 'Todos entran al Estudio Juanito'], ['🗳️', 'Se elige el nombre de la película'], ['🎭', 'Meta: 2 disfraces · $36 de $400']] },
+  { titulo: 'Maquillaje, disfraces y LA SORPRESA', img: 'img/dia5.jpg', presupuesto: 441, vistas: '1,5 K',
+    hechos: [['🎭', '¡Meta lograda! Compran los 2 disfraces'], ['🦸', 'Nace Cartón Man y vuelve el Doctor Tijeras'], ['🌐', 'La sorpresa: la web del Estudio Juanito']] },
+  { titulo: 'El villano se MEJORA y la ciudad cae otra vez', img: 'img/dia6.jpg', presupuesto: 260, vistas: '3,2 K',
+    hechos: [['♻️', 'Doctor Tijeras se mejora con reciclaje'], ['🏙️', 'La ciudad cae otra vez · 5 de 6 escenas'], ['⚔️', 'La batalla final cuesta $500']] },
+  { titulo: '¡La BATALLA FINAL!', img: 'img/dia7.jpg', presupuesto: 668, vistas: '1,5 K',
+    hechos: [['🙌', 'Juntan $668: ¡llegan a la meta!'], ['⚔️', 'Cartón Man contra el Doctor Tijeras'], ['🍿', 'Estreno de la Película 2 · 2:00 PM']] },
+];
+const INTRO = 8, DAY = 11, D0 = INTRO, MOV = D0 + DIAS.length * DAY, NEXT = MOV + 12, END = NEXT + 5, DUR = END + 6;
+const MONT = MOV; // soundtrack: lead line over the movies section
+const COLORS = ['#ffd23f', '#29d3ff', '#ff4d5e', '#2ec4b6', '#c58bff', '#ff9f43', '#ffd23f'];
+const SC = [{ id: 'intro', name: 'Intro', sub: 'Juanito desde Cero', start: 0, len: INTRO, color: '#ffd23f' },
+  ...DIAS.map((d, i) => ({ id: 'd' + i, name: 'Día ' + (i + 1), sub: d.titulo, start: D0 + i * DAY, len: DAY, color: COLORS[i] })),
+  { id: 'movies', name: 'Películas', sub: '2 estrenos', start: MOV, len: NEXT - MOV, color: '#ff8a5c' },
+  { id: 'next', name: 'Película 3', sub: 'Próximamente', start: NEXT, len: END - NEXT, color: '#29d3ff' },
+  { id: 'end', name: 'Final', sub: '@JuanitoDesdeCero', start: END, len: DUR - END, color: '#e8e8ee' }];
+const RENDER = /[?&#]render/.test(location.search + location.hash);
+if (RENDER) document.body.classList.add('render');
+const $ = (id) => document.getElementById(id);
+const clamp01 = (x) => Math.max(0, Math.min(1, x));
+const smooth = (a, b, x) => { const k = clamp01((x - a) / (b - a)); return k * k * (3 - 2 * k); };
+
+// ---------- build ----------
+const bgs = $('bgs');
+const BG = [['intro', 'img/dia1.jpg'], ...DIAS.map((d, i) => ['d' + i, d.img]), ['movies', 'img/poster2.jpg'], ['next', 'img/f2e6.jpg'], ['end', 'img/dia7.jpg']];
+BG.forEach(([id, src]) => { const im = new Image(); im.className = 'bgimg'; im.id = 'bg_' + id; im.src = src; im.alt = ''; bgs.appendChild(im); });
+const daysEl = $('days');
+DIAS.forEach((d, i) => {
+  const s = document.createElement('section'); s.className = 'scn day'; s.id = 'd' + i;
+  s.innerHTML = `
+    <div class="dleft">
+      <div class="dtag">🎬 Juanito desde Cero</div>
+      <div class="dnum split">DÍA ${i + 1}</div>
+      <div class="dtitle split">${d.titulo}</div>
+      <div class="facts">${d.hechos.map(h => `<div class="fact"><b>${h[0]}</b>${h[1]}</div>`).join('')}</div>
+    </div>
+    <div class="budget"><small>PRESUPUESTO</small><b class="bv">$0</b></div>
+    <div class="phone"><img src="${d.img}" alt="Día ${i + 1}"><div class="glint"></div></div>
+    <div class="views">👁 ${d.vistas} vistas en YouTube</div>
+    <div class="dots7">${DIAS.map(() => '<div><i></i></div>').join('')}</div>`;
+  daysEl.appendChild(s);
+});
+const strip = $('strip'); const STRIP = ['e1', 'e2', 'e3', 'e4', 'e5', 'f2e1', 'f2e2', 'f2e3', 'f2e4', 'f2e5', 'f2e6', 'f2e7'];
+[...STRIP, ...STRIP, ...STRIP].forEach(n => { const im = new Image(); im.src = `img/${n}.jpg`; im.alt = ''; strip.appendChild(im); });
+document.querySelectorAll('.split').forEach(el => {
+  el.innerHTML = el.textContent.trim().split(' ').map(w => `<span class="w">${[...w].map(ch => `<span class="chr">${ch}</span>`).join('')}</span>`).join(' ');
+});
+
+// ---------- master timeline ----------
+const tl = gsap.timeline({ paused: true, defaults: { ease: 'power3.out' } });
+const showBg = (id, a, b) => { tl.fromTo('#bg_' + id, { opacity: 0, scale: 1.08 }, { opacity: 1, scale: 1, duration: 1.2, ease: 'power2.out', immediateRender: false }, a).to('#bg_' + id, { opacity: 0, duration: 1, ease: 'power1.in' }, b - .4); };
+const scene = (id, a, b) => { tl.set('#' + id, { visibility: 'visible', opacity: 1 }, a).set('#' + id, { visibility: 'hidden' }, b); };
+
+// intro
+scene('intro', 0, INTRO); showBg('intro', 0, INTRO);
+tl.fromTo('#ip1', { y: 500, rotation: -24, opacity: 0 }, { y: 0, rotation: -10, opacity: 1, duration: 1.4, ease: 'expo.out' }, .4)
+  .fromTo('#ip3', { y: 500, rotation: 24, opacity: 0 }, { y: 0, rotation: 10, opacity: 1, duration: 1.4, ease: 'expo.out' }, .55)
+  .fromTo('#ip2', { y: 520, scale: .8, opacity: 0 }, { y: 0, scale: 1.04, opacity: 1, duration: 1.5, ease: 'expo.out' }, .7)
+  .fromTo('#intro .ttl .chr', { yPercent: 115, rotation: 10 }, { yPercent: 0, rotation: 0, stagger: .06, duration: 1.1, ease: 'expo.out' }, 1.4)
+  .fromTo('#isub', { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 1.2, ease: 'power2.inOut' }, 2.3)
+  .fromTo('#intro .meta div', { opacity: 0, y: 40, scale: .9 }, { opacity: 1, y: 0, scale: 1, stagger: .15, duration: .9, ease: 'back.out(2)' }, 3.1)
+  .to('#ip1', { rotation: -13, x: -20, duration: 4, ease: 'sine.inOut' }, 2.4).to('#ip3', { rotation: 13, x: 20, duration: 4, ease: 'sine.inOut' }, 2.4).to('#ip2', { y: -16, duration: 4, ease: 'sine.inOut' }, 2.4)
+  .to('#intro', { opacity: 0, scale: 1.06, filter: 'blur(14px)', duration: .8, ease: 'power2.in' }, INTRO - .8);
+
+// days
+DIAS.forEach((d, i) => {
+  const s = D0 + i * DAY, g = '#d' + i, prev = i ? DIAS[i - 1].presupuesto : 0, bv = document.querySelector(`${g} .bv`), o = { v: prev };
+  scene('d' + i, s - .1, s + DAY); showBg('d' + i, s - .4, s + DAY);
+  tl.fromTo(`${g} .phone`, { x: 760, rotationY: -40, rotationZ: 8, opacity: 0 }, { x: 0, rotationY: -10, rotationZ: 0, opacity: 1, duration: 1.4, ease: 'expo.out' }, s)
+    .fromTo(`${g} .phone img`, { scale: 1.16 }, { scale: 1, duration: DAY, ease: 'none' }, s)
+    .to(`${g} .phone`, { rotationY: 8, y: -12, duration: 8.2, ease: 'sine.inOut' }, s + 1.4)
+    .fromTo(`${g} .glint`, { xPercent: -120 }, { xPercent: 120, duration: 1.3, ease: 'power2.inOut' }, s + 1.5)
+    .fromTo(`${g} .dtag`, { opacity: 0, y: -30 }, { opacity: 1, y: 0, duration: .8 }, s + .2)
+    .fromTo(`${g} .dnum .chr`, { yPercent: 115 }, { yPercent: 0, stagger: .05, duration: 1, ease: 'expo.out' }, s + .3)
+    .fromTo(`${g} .dtitle .chr`, { yPercent: 115, opacity: 0 }, { yPercent: 0, opacity: 1, stagger: .012, duration: .9, ease: 'expo.out' }, s + .8)
+    .fromTo(`${g} .fact`, { opacity: 0, x: -70, scale: .96 }, { opacity: 1, x: 0, scale: 1, stagger: .55, duration: .9, ease: 'expo.out' }, s + 2.1)
+    .fromTo(`${g} .budget`, { opacity: 0, y: 40, scale: .9 }, { opacity: 1, y: 0, scale: 1, duration: .9, ease: 'back.out(2)' }, s + 1.2)
+    .fromTo(o, { v: prev }, { v: d.presupuesto, duration: 2.4, ease: 'power2.inOut', onUpdate: () => { bv.textContent = '$' + Math.round(o.v); } }, s + 1.6)
+    .fromTo(`${g} .views`, { opacity: 0 }, { opacity: 1, duration: .8 }, s + 2.2)
+    .fromTo(`${g} .dots7`, { opacity: 0 }, { opacity: 1, duration: .6 }, s + .4);
+  document.querySelectorAll(`${g} .dots7 i`).forEach((bar, k) => {
+    if (k < i) tl.set(bar, { width: '100%' }, s);
+    else if (k === i) tl.fromTo(bar, { width: '0%' }, { width: '100%', duration: DAY - .6, ease: 'none' }, s);
+  });
+  tl.to(`${g} .phone`, { x: -300, rotationY: 35, opacity: 0, duration: .8, ease: 'power3.in' }, s + DAY - .8)
+    .to(`${g} .dleft, ${g} .budget, ${g} .views`, { opacity: 0, y: -30, filter: 'blur(10px)', duration: .7, ease: 'power2.in' }, s + DAY - .75);
+});
+
+// movies
+scene('movies', MOV, NEXT); showBg('movies', MOV - .3, NEXT);
+tl.fromTo('#movies .mhead small', { opacity: 0, letterSpacing: '1em' }, { opacity: 1, letterSpacing: '.4em', duration: 1.2 }, MOV + .1)
+  .fromTo('#movies .mhead .chr', { yPercent: 115 }, { yPercent: 0, stagger: .025, duration: 1, ease: 'expo.out' }, MOV + .4)
+  .fromTo('.poster.p1', { x: -700, rotationY: 50, opacity: 0 }, { x: 0, rotationY: 12, opacity: 1, duration: 1.6, ease: 'expo.out' }, MOV + .7)
+  .fromTo('.poster.p2', { x: 700, rotationY: -50, opacity: 0 }, { x: 0, rotationY: -12, opacity: 1, duration: 1.6, ease: 'expo.out' }, MOV + 1.4)
+  .to('.poster.p1', { rotationY: 4, y: -10, duration: 8, ease: 'sine.inOut' }, MOV + 2.3)
+  .to('.poster.p2', { rotationY: -4, y: -10, duration: 8, ease: 'sine.inOut' }, MOV + 3)
+  .fromTo('#strip', { x: 0, opacity: 0 }, { x: -1200, opacity: 1, duration: 12, ease: 'none' }, MOV)
+  .to('#movies', { opacity: 0, filter: 'blur(14px)', duration: .8, ease: 'power2.in' }, NEXT - .8);
+// next
+scene('next', NEXT, END); showBg('next', NEXT - .3, END);
+tl.fromTo('#next .k', { opacity: 0, letterSpacing: '1em' }, { opacity: 1, letterSpacing: '.45em', duration: 1.2 }, NEXT + .1)
+  .fromTo('#next .t .chr', { yPercent: 115 }, { yPercent: 0, stagger: .03, duration: 1, ease: 'expo.out' }, NEXT + .3)
+  .fromTo('#next .nsub', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: .8 }, NEXT + 1.3)
+  .fromTo('#next .d8', { opacity: 0, scale: .7 }, { opacity: 1, scale: 1, duration: .9, ease: 'back.out(2.2)' }, NEXT + 1.9)
+  .to('#next', { opacity: 0, duration: .6 }, END - .6);
+// end
+scene('end', END, DUR + 1); showBg('end', END - .3, DUR + 2);
+tl.fromTo('#end .chr', { yPercent: 115, rotation: -8 }, { yPercent: 0, rotation: 0, stagger: .06, duration: 1.2, ease: 'expo.out' }, END + .2)
+  .fromTo('#esub', { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 1.2, ease: 'power2.inOut' }, END + 1)
+  .fromTo('#eh', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 1 }, END + 1.8)
+  .set({}, {}, DUR);
+
+function procedural(t) { $('black').style.opacity = Math.max(1 - smooth(0, .8, t), smooth(DUR - 1.2, DUR, t)).toFixed(3); }
+function renderAt(t) { tl.time(Math.min(t, DUR - .001), false); procedural(t); }
+window.__renderAt = (t) => { renderAt(t); return true; };
+window.__DUR = DUR;
+// ---------- soundtrack (rendered offline so it stays in sync with the timeline) ----------
+async function renderMusic(sr) {
+  const ac = new OfflineAudioContext(2, Math.ceil(sr * DUR), sr);
+  const out = ac.createGain(); out.gain.value = .8; out.connect(ac.destination);
+  const verb = ac.createConvolver(); const ir = ac.createBuffer(2, sr * 2.2, sr);
+  for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3); }
+  verb.buffer = ir; const vg = ac.createGain(); vg.gain.value = .22; verb.connect(vg); vg.connect(out);
+  const nb = ac.createBuffer(1, sr, sr); { const d = nb.getChannelData(0); for (let i = 0; i < sr; i++) d[i] = Math.random() * 2 - 1; }
+  const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  const tone = (m, t0, dur, type, vol, cut, wet) => { const o = ac.createOscillator(); o.type = type; o.frequency.value = mtof(m); const f = ac.createBiquadFilter(); f.frequency.value = cut; const g = ac.createGain();
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + .015); g.gain.exponentialRampToValueAtTime(vol * .35, t0 + dur * .4); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+    o.connect(f); f.connect(g); g.connect(out); if (wet) g.connect(verb); o.start(t0); o.stop(t0 + dur + .05); };
+  const hit = (t0, type, vol) => {
+    if (type === 'k') { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(130, t0); o.frequency.exponentialRampToValueAtTime(42, t0 + .18); g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(.001, t0 + .32); o.connect(g); g.connect(out); o.start(t0); o.stop(t0 + .35); return; }
+    const s = ac.createBufferSource(); s.buffer = nb; const f = ac.createBiquadFilter(); f.type = type === 's' ? 'bandpass' : 'highpass'; f.frequency.value = type === 's' ? 1900 : 7500;
+    const g = ac.createGain(); const d = type === 's' ? .2 : .045; g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(.001, t0 + d); s.connect(f); f.connect(g); g.connect(out); if (type === 's') g.connect(verb); s.start(t0, Math.random() * .5); s.stop(t0 + d + .02);
+  };
+  const beat = 60 / 88, bar = beat * 4;
+  const CH = [[53, 57, 60, 64], [52, 55, 59, 62], [50, 53, 57, 60], [48, 52, 55, 59]], ROOT = [41, 40, 38, 36];
+  for (let n = 0, t = 0; t < DUR; n++, t += bar) {
+    const c = CH[n % 4], full = t > 6.5 && t < END + 3, lead = t > MONT - .2 && t < END + 2;
+    c.forEach((m, j) => { tone(m, t + j * .012, bar * 1.05, 'sine', .05, 2400, true); tone(m + 12, t + .02, bar * .6, 'triangle', .012, 3200, true); });
+    if (full) {
+      [0, 2.5, 3].forEach(bt => tone(ROOT[n % 4] - 12 + (bt === 3 ? 12 : 0), t + bt * beat, beat * .9, 'triangle', .16, 380, false));
+      [0, 2].forEach(bt => hit(t + bt * beat, 'k', .55)); [1, 3].forEach(bt => hit(t + bt * beat, 's', .16));
+      for (let h = 0; h < 8; h++) hit(t + h * beat / 2 + (h % 2 ? beat * .06 : 0), 'h', h % 2 ? .03 : .05);
+    }
+    if (lead) for (let a = 0; a < 16; a++) tone(c[(a * 3) % 4] + 24, t + a * beat / 4, beat / 3, 'triangle', .03, 4200, true);
+  }
+  out.gain.setValueAtTime(.8, DUR - 4); out.gain.linearRampToValueAtTime(0, DUR - .3);
+  return ac.startRendering();
+}
+window.__renderAudio = async () => {
+  const sr = 44100, buf = await renderMusic(sr); const L = buf.getChannelData(0), R = buf.getChannelData(1), N = L.length;
+  const bytes = new Uint8Array(44 + N * 4), dv = new DataView(bytes.buffer); const w = (o, s) => [...s].forEach((c, i) => dv.setUint8(o + i, c.charCodeAt(0)));
+  w(0, 'RIFF'); dv.setUint32(4, 36 + N * 4, true); w(8, 'WAVE'); w(12, 'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 2, true); dv.setUint32(24, sr, true); dv.setUint32(28, sr * 4, true); dv.setUint16(32, 4, true); dv.setUint16(34, 16, true); w(36, 'data'); dv.setUint32(40, N * 4, true);
+  for (let i = 0; i < N; i++) { dv.setInt16(44 + i * 4, Math.max(-1, Math.min(1, L[i])) * 32767, true); dv.setInt16(46 + i * 4, Math.max(-1, Math.min(1, R[i])) * 32767, true); }
+  let bin = ''; for (let i = 0; i < bytes.length; i += 32768) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 32768)); return btoa(bin);
+};
+
+if (RENDER) { renderAt(0); window.__ready = true; return; }
+
+// =====================================================================
+// Editor shell
+// =====================================================================
+const stage = $('stage'), screen = $('screen');
+screen.appendChild(stage);
+const viewer = screen.parentElement;
+const fit = () => {
+  const cs = getComputedStyle(viewer), pw = viewer.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), ph = viewer.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  const w = Math.max(160, Math.min(pw, ph * 16 / 9)); screen.style.width = w + 'px'; screen.style.height = (w * 9 / 16) + 'px'; stage.style.transform = `scale(${w / 1920})`;
+};
+new ResizeObserver(fit).observe(viewer); fit();
+
+const SCENES = SC;
+const pct = (t) => (t / DUR * 100) + '%';
+const fmt = (t) => { const f = Math.floor(t * FPS + 1e-6), s = Math.floor(f / FPS); return `00:${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}:${String(f % FPS).padStart(2, '0')}`; };
+const ruler = $('ruler'); for (let s = 0; s <= DUR; s += 10) { const sp = document.createElement('span'); sp.style.left = pct(s); sp.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; ruler.appendChild(sp); }
+SCENES.forEach(sc => {
+  const c = document.createElement('div'); c.className = 'clip'; c.style.left = pct(sc.start); c.style.width = `calc(${pct(sc.len)} - 2px)`; c.style.background = sc.color; c.textContent = sc.name + ' · ' + sc.sub; $('trkV1').appendChild(c);
+  const t2 = document.createElement('div'); t2.className = 'clip t2'; t2.style.left = `calc(${pct(sc.start + .4)})`; t2.style.width = `calc(${pct(Math.min(5, sc.len - .8))})`; t2.textContent = 'T ' + sc.sub; $('trkV2').appendChild(t2);
+});
+const list = $('sceneList'); const sceneBtns = SCENES.map(sc => { const b = document.createElement('button'); b.type = 'button'; b.className = 'scene'; b.innerHTML = `<i style="background:${sc.color}"></i><span><b>${sc.name}</b><small>${sc.sub}</small></span><em>${fmt(sc.start).slice(3, 8)}</em>`; b.onclick = () => seek(sc.start + .01); list.appendChild(b); return b; });
+
+const wave = $('wave'); let audioBuf = null;
+function drawWave() {
+  const w = wave.clientWidth, h = wave.clientHeight; if (!w) return; wave.width = w * devicePixelRatio; wave.height = h * devicePixelRatio;
+  const x = wave.getContext('2d'); x.scale(devicePixelRatio, devicePixelRatio); x.fillStyle = 'rgba(90,209,255,.75)';
+  for (let i = 0; i < w; i += 2) {
+    let a;
+    if (audioBuf) { const d = audioBuf.getChannelData(0), s0 = Math.floor(i / w * d.length), s1 = Math.floor((i + 2) / w * d.length); let m = 0; for (let k = s0; k < s1; k += 64) m = Math.max(m, Math.abs(d[k])); a = Math.min(1, m * 1.8); }
+    else { const t = i / w * DUR; a = (t < 6.5 ? .25 : .55) * (.6 + .4 * Math.abs(Math.sin(t * 9.2))) * (1 - smooth(DUR - 4, DUR, t)); }
+    const hh = Math.max(1, a * (h - 6)); x.fillRect(i, (h - hh) / 2, 1.4, hh);
+  }
+}
+new ResizeObserver(drawWave).observe(wave);
+
+let t = 0, playing = false, last = 0;
+const head = $('head'), tc = $('tc'), btnPlay = $('btnPlay'), tlEl = $('tl');
+const PLAY = '<svg width="14" height="16" viewBox="0 0 14 16"><path d="M1 1l12 7-12 7z" fill="currentColor"/></svg>', PAUSE = '<svg width="14" height="16" viewBox="0 0 14 16"><rect x="1" y="1" width="4" height="14" rx="1" fill="currentColor"/><rect x="9" y="1" width="4" height="14" rx="1" fill="currentColor"/></svg>';
+function ui() {
+  head.style.left = `calc(44px + (100% - 44px) * ${t / DUR})`;
+  tc.innerHTML = `${fmt(t)} <span>/ ${fmt(DUR)}</span>`; tlEl.setAttribute('aria-valuenow', t.toFixed(1));
+  const cur = SCENES.findIndex(sc => t >= sc.start && t < sc.start + sc.len); sceneBtns.forEach((b, i) => b.classList.toggle('on', i === cur));
+  btnPlay.innerHTML = playing ? PAUSE : PLAY; btnPlay.setAttribute('aria-label', playing ? 'Pausa' : 'Reproducir');
+}
+function seek(v) { t = Math.max(0, Math.min(DUR, v)); renderAt(t); ui(); if (playing) startSound(); }
+function setPlaying(p) { if (p && t >= DUR - .05) t = 0; playing = p; last = performance.now(); if (p) startSound(); else stopSound(); ui(); }
+btnPlay.onclick = () => setPlaying(!playing);
+$('btnStart').onclick = () => seek(0); $('btnBack').onclick = () => seek(t - 5); $('btnFwd').onclick = () => seek(t + 5);
+$('btnOnly').onclick = (e) => { const on = document.body.classList.toggle('only'); e.currentTarget.setAttribute('aria-pressed', String(on)); };
+addEventListener('keydown', (e) => {
+  if (e.target.closest('button') && e.code === 'Space') return;
+  if (e.code === 'Space') { e.preventDefault(); setPlaying(!playing); } else if (e.key === 'ArrowLeft') seek(t - (e.shiftKey ? 5 : 1 / FPS)); else if (e.key === 'ArrowRight') seek(t + (e.shiftKey ? 5 : 1 / FPS));
+});
+const scrub = (e) => { const r = tlEl.getBoundingClientRect(); seek((e.clientX - r.left - 44) / (r.width - 44) * DUR); };
+tlEl.addEventListener('pointerdown', (e) => { tlEl.setPointerCapture(e.pointerId); scrub(e); tlEl.onpointermove = scrub; });
+tlEl.addEventListener('pointerup', () => { tlEl.onpointermove = null; });
+
+// sound, synced to the playhead
+let ac = null, src = null, soundOn = false; const btnSound = $('btnSound');
+function stopSound() { if (src) { try { src.stop(); } catch (_) {} src = null; } }
+function startSound() { stopSound(); if (!soundOn || !audioBuf || !playing) return; src = ac.createBufferSource(); src.buffer = audioBuf; src.connect(ac.destination); src.start(0, Math.min(t, DUR - .05)); }
+btnSound.onclick = async () => {
+  soundOn = !soundOn; btnSound.setAttribute('aria-pressed', String(soundOn));
+  if (!soundOn) { stopSound(); return; }
+  if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+  if (ac.state === 'suspended') await ac.resume();
+  if (!audioBuf) { btnSound.textContent = 'Cargando…'; audioBuf = await renderMusic(ac.sampleRate); btnSound.textContent = 'Sonido'; drawWave(); }
+  startSound();
+};
+
+function loop(now) {
+  if (playing) { t += (now - last) / 1000; if (t >= DUR) { t = DUR; playing = false; stopSound(); } renderAt(t); ui(); }
+  last = now; requestAnimationFrame(loop);
+}
+seek(5); // open on the finished title frame
+document.fonts && document.fonts.ready.then(() => { renderAt(t); });
+requestAnimationFrame((n) => { last = n; loop(n); });
+})();
+</script>
