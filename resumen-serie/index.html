@@ -1,0 +1,550 @@
+<title>Juanito desde cero</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Caveat:wght@700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+  /* Layout: video-editor shell (header · viewer + scene list · transport · timeline) around a fixed 1920×1080 stage scaled to fit */
+  :root {
+    --app: #101114;
+    --panel: #17181c;
+    --panel-2: #1e2026;
+    --line: #2c2f37;
+    --text: #eceef3;
+    --dim: #8a8f9c;
+    --playhead: #ff4d5e;
+    --ui-accent: #ffb547;
+    --display: "Bricolage Grotesque", "Arial Black", system-ui, sans-serif;
+    --hand: "Caveat", "Segoe Script", cursive;
+    --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body { background: var(--app); color: var(--text); font-family: var(--body); overflow: hidden; }
+  button { font: inherit; color: inherit; }
+
+  .app { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto auto; }
+  .top { display: flex; align-items: center; gap: 14px; padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+    background: var(--panel); border-bottom: 1px solid var(--line); min-width: 0; }
+  .logo { display: flex; align-items: center; gap: 8px; font: 700 14px var(--body); letter-spacing: .02em; flex: none; }
+  .logo i { width: 18px; height: 18px; border-radius: 5px; background: conic-gradient(from 200deg, #ffb547, #ff4d5e, #5ad1ff, #ffb547); }
+  .menu { display: flex; gap: 14px; font-size: 12px; color: var(--dim); }
+  .proj { flex: 1; min-width: 0; text-align: center; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .proj span { color: var(--dim); font-weight: 400; }
+  .tbtn { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 7px 11px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .tbtn:hover { border-color: #444955; }
+  .tbtn:focus-visible, .tl:focus-visible, .scene:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 2px; }
+  .tbtn[aria-pressed="true"] { color: var(--ui-accent); border-color: var(--ui-accent); }
+
+  .work { display: grid; grid-template-columns: minmax(0, 1fr) 250px; min-height: 0; }
+  .viewer { position: relative; display: grid; place-items: center; padding: 18px; overflow: hidden; min-width: 0; min-height: 0; background: #0b0c0e; }
+  .screen { position: relative; width: 320px; height: 180px; flex: none; overflow: hidden; background: #000; box-shadow: 0 0 0 1px #24262c, 0 30px 60px rgba(0, 0, 0, .5); }
+  .side { background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; padding: 14px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .side h4 { margin: 0 0 6px; font: 600 11px var(--body); letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
+  .scene { display: grid; grid-template-columns: 6px 1fr auto; gap: 10px; align-items: center; text-align: left; background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 8px; cursor: pointer; }
+  .scene:hover { background: var(--panel-2); }
+  .scene.on { background: var(--panel-2); border-color: var(--line); }
+  .scene i { height: 28px; border-radius: 3px; }
+  .scene b { font-size: 12.5px; font-weight: 600; display: block; }
+  .scene small { font-size: 11px; color: var(--dim); }
+  .scene em { font: 500 11px var(--mono); font-style: normal; color: var(--dim); }
+  .note-ex { margin-top: auto; font-size: 11px; line-height: 1.45; color: var(--dim); border-top: 1px solid var(--line); padding-top: 10px; }
+
+  .transport { display: flex; align-items: center; gap: 10px; padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+    background: var(--panel); border-top: 1px solid var(--line); flex-wrap: wrap; }
+  .tc { font: 500 15px var(--mono); font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+  .tc span { color: var(--dim); }
+  .play { width: 38px; height: 34px; display: grid; place-items: center; padding: 0; }
+  .spacer { flex: 1; }
+  .hint { font-size: 12px; color: var(--dim); }
+  @media (max-width: 600px) { .hint { display: none; } .tc { font-size: 13px; } }
+
+  .timeline { background: var(--panel); border-top: 1px solid var(--line); padding-block: 8px 12px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .tl-scroll { overflow-x: auto; }
+  .tl { position: relative; min-width: 640px; display: grid; grid-template-columns: 44px 1fr; row-gap: 5px; cursor: pointer; user-select: none; touch-action: none; }
+  .tl .lab { font: 600 10px var(--mono); color: var(--dim); display: flex; align-items: center; }
+  .ruler { position: relative; height: 18px; border-bottom: 1px solid var(--line); }
+  .ruler span { position: absolute; top: 0; font: 500 10px var(--mono); color: var(--dim); transform: translateX(-50%); }
+  .ruler span::after { content: ""; position: absolute; left: 50%; top: 13px; height: 5px; width: 1px; background: #444955; }
+  .track { position: relative; height: 34px; background: #121317; border-radius: 6px; overflow: hidden; }
+  .clip { position: absolute; top: 2px; bottom: 2px; border-radius: 5px; padding: 0 8px; font: 600 11px/30px var(--body); color: #121317; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .clip.t2 { background: rgba(255, 255, 255, .1) !important; color: var(--text); border: 1px solid rgba(255, 255, 255, .14); font-weight: 500; }
+  #wave { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .head { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--playhead); pointer-events: none; left: 44px; }
+  .head::before { content: ""; position: absolute; top: -2px; left: -6px; border: 7px solid transparent; border-top: 9px solid var(--playhead); }
+
+  body.only .top, body.only .side, body.only .timeline { display: none; }
+  body.only .work { grid-template-columns: 1fr; }
+  @media (max-width: 900px) { .side { display: none; } .work { grid-template-columns: 1fr; } .menu { display: none; } .viewer { padding: 10px; } }
+
+  /* ---------------- the 1920×1080 stage ---------------- */
+  #stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: hidden; color: #fff; font-family: var(--body);
+    --ink: #0d0b12; --glass: rgba(24, 20, 34, .5); }
+  #bg { position: absolute; inset: 0; width: 1920px; height: 1080px; }
+  .scn { position: absolute; inset: 0; visibility: hidden; opacity: 0; perspective: 1600px; }
+  .w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .08em; margin-bottom: -.08em; }
+  .chr { display: inline-block; will-change: transform; }
+
+  /* intro */
+  #intro { visibility: visible; opacity: 1; }
+  .zero { position: absolute; left: 960px; top: 540px; width: 520px; height: 520px; margin: -260px 0 0 -260px; display: grid; place-items: center; }
+  .zero svg { position: absolute; inset: 0; }
+  .zero b { font: 800 400px/1 var(--display); letter-spacing: -.04em; background: linear-gradient(180deg, #fff 30%, #ffb547); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .ititle { position: absolute; left: 860px; top: 330px; }
+  .ititle .big { font: 800 196px/1 var(--display); letter-spacing: -.035em; }
+  .ititle .hand { font: 700 132px/1 var(--hand); color: #ffb547; margin: -18px 0 0 8px; text-shadow: 0 8px 40px rgba(255, 181, 71, .35); }
+  .ikick { position: absolute; left: 870px; top: 720px; font: 600 24px var(--body); letter-spacing: .4em; text-transform: uppercase; color: rgba(255, 255, 255, .7); white-space: nowrap; }
+
+  /* chapter */
+  .wipe { position: absolute; inset: 0; z-index: 5; }
+  .wipe::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .25)); }
+  .left { position: absolute; left: 140px; top: 190px; width: 860px; }
+  .num { font: 800 230px/.85 var(--display); color: transparent; -webkit-text-stroke: 2.5px var(--acc); letter-spacing: -.03em; }
+  .kick { font: 600 22px var(--body); letter-spacing: .4em; text-transform: uppercase; color: var(--acc); margin-top: 30px; }
+  .ttl { font: 800 104px/1.02 var(--display); letter-spacing: -.03em; margin-top: 14px; text-wrap: balance; }
+  .sub { font: 400 34px/1.35 var(--body); color: rgba(255, 255, 255, .72); margin-top: 24px; max-width: 760px; }
+  .prog { position: absolute; left: 140px; bottom: 140px; width: 780px; }
+  .prog .row { display: flex; justify-content: space-between; align-items: baseline; font: 600 20px var(--body); letter-spacing: .14em; text-transform: uppercase; color: rgba(255, 255, 255, .6); }
+  .prog .row b { font: 800 54px/1 var(--display); letter-spacing: -.02em; color: #fff; font-variant-numeric: tabular-nums; }
+  .prog .trk { height: 12px; border-radius: 12px; background: rgba(255, 255, 255, .1); margin-top: 16px; overflow: hidden; }
+  .prog .fill { height: 100%; width: 0; border-radius: 12px; background: var(--acc); box-shadow: 0 0 24px var(--acc); }
+  .cards { position: absolute; right: 140px; top: 170px; width: 660px; display: flex; flex-direction: column; gap: 28px; transform-style: preserve-3d; }
+  .card { display: flex; gap: 26px; align-items: center; padding: 30px 34px; border-radius: 34px; background: var(--glass); border: 1px solid rgba(255, 255, 255, .18);
+    box-shadow: 0 40px 80px -24px rgba(0, 0, 0, .7), inset 0 1px 0 rgba(255, 255, 255, .22); backdrop-filter: blur(26px) saturate(150%); -webkit-backdrop-filter: blur(26px) saturate(150%); }
+  .card .ic { flex: none; width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center; font: 800 36px var(--display); color: var(--ink); background: var(--acc); box-shadow: 0 0 34px color-mix(in srgb, var(--acc) 60%, transparent); }
+  .card small { display: block; font: 700 18px var(--body); letter-spacing: .22em; text-transform: uppercase; color: var(--acc); }
+  .card p { margin: 8px 0 0; font: 600 33px/1.25 var(--body); }
+  .chtag { position: absolute; right: 140px; bottom: 140px; font: 600 20px var(--body); letter-spacing: .3em; text-transform: uppercase; color: rgba(255, 255, 255, .45); }
+
+  /* montage + end */
+  #montage .mt { position: absolute; left: 140px; top: 110px; }
+  #montage .mt b { display: block; font: 800 96px/1 var(--display); letter-spacing: -.03em; }
+  #montage .mt .hand2 { display: block; font: 700 64px/1 var(--hand); color: #ffb547; margin-top: 6px; }
+  #montage .cnt { position: absolute; left: 1000px; top: 96px; text-align: left; font: 600 20px var(--body); letter-spacing: .25em; text-transform: uppercase; color: rgba(255, 255, 255, .6); }
+  #montage .cnt b { display: block; font: 800 150px/1 var(--display); color: #fff; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+  #chart { position: absolute; inset: 0; width: 1920px; height: 1080px; overflow: visible; }
+  #chart .pl { font: 600 22px var(--body); fill: #fff; }
+  #chart .pv { font: 800 26px var(--display); }
+  .avatar { position: absolute; width: 150px; height: 220px; margin-left: -75px; margin-top: -214px; }
+  #end .etitle { position: absolute; left: 0; right: 0; top: 300px; text-align: center; }
+  #end .etitle .big { font: 800 230px/1 var(--display); letter-spacing: -.04em; }
+  #end .etitle .hand { font: 700 150px/1 var(--hand); color: #ffb547; margin-top: -30px; text-shadow: 0 8px 50px rgba(255, 181, 71, .4); }
+  #end .ek { position: absolute; left: 0; right: 0; top: 790px; text-align: center; font: 600 26px var(--body); letter-spacing: .5em; text-transform: uppercase; color: rgba(255, 255, 255, .75); }
+  #black { position: absolute; inset: 0; background: #000; pointer-events: none; z-index: 20; }
+
+  body.render { background: #000; }
+  body.render .app { display: none; }
+  body.render #stage { position: fixed; transform: none !important; }
+</style>
+
+<div class="app" id="app">
+  <header class="top">
+    <div class="logo"><i></i>Montaje</div>
+    <nav class="menu" aria-hidden="true"><span>Archivo</span><span>Editar</span><span>Clip</span><span>Color</span><span>Audio</span><span>Exportar</span></nav>
+    <div class="proj">Juanito desde cero <span>· Resumen temporada 1 · 1920×1080 · 30 fps</span></div>
+    <button class="tbtn" id="btnSound" type="button" aria-pressed="false">Sonido</button>
+    <button class="tbtn" id="btnOnly" type="button" aria-pressed="false">Solo video</button>
+  </header>
+  <div class="work">
+    <div class="viewer"><div class="screen" id="screen"></div></div>
+    <aside class="side" aria-label="Escenas">
+      <h4>Escenas</h4>
+      <div id="sceneList" style="display:flex;flex-direction:column;gap:4px"></div>
+      <p class="note-ex">Los textos de los capítulos son de ejemplo. Se cambian en la lista <b>CAPITULOS</b> del código.</p>
+    </aside>
+  </div>
+  <div class="transport">
+    <button class="tbtn" id="btnStart" type="button" aria-label="Ir al inicio">⏮</button>
+    <button class="tbtn" id="btnBack" type="button" aria-label="Retroceder 5 segundos">−5 s</button>
+    <button class="tbtn play" id="btnPlay" type="button" aria-label="Reproducir"></button>
+    <button class="tbtn" id="btnFwd" type="button" aria-label="Avanzar 5 segundos">+5 s</button>
+    <div class="tc" id="tc">00:00:00:00 <span>/ 00:02:01:00</span></div>
+    <div class="spacer"></div>
+    <span class="hint">Espacio: reproducir · ← →: mover</span>
+  </div>
+  <div class="timeline">
+    <div class="tl-scroll">
+      <div class="tl" id="tl" tabindex="0" role="slider" aria-label="Línea de tiempo" aria-valuemin="0" aria-valuemax="121" aria-valuenow="0">
+        <div></div><div class="ruler" id="ruler"></div>
+        <div class="lab">V2</div><div class="track" id="trkV2"></div>
+        <div class="lab">V1</div><div class="track" id="trkV1"></div>
+        <div class="lab">A1</div><div class="track"><canvas id="wave"></canvas></div>
+        <div class="head" id="head"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="stage">
+  <canvas id="bg" width="1920" height="1080"></canvas>
+
+  <section class="scn" id="intro">
+    <div class="zero" id="zero">
+      <svg viewBox="0 0 520 520"><circle id="ring" cx="260" cy="260" r="236" fill="none" stroke="#ffb547" stroke-width="6" stroke-linecap="round" transform="rotate(-90 260 260)"/>
+        <circle cx="260" cy="260" r="252" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="2"/></svg>
+      <b>0</b>
+    </div>
+    <div class="ititle"><div class="big split">JUANITO</div><div class="hand" id="ihand">desde cero</div></div>
+    <div class="ikick" id="ikick">Resumen · Temporada 1</div>
+  </section>
+
+  <div id="chapters"></div>
+
+  <section class="scn" id="montage">
+    <svg id="chart" viewBox="0 0 1920 1080"></svg>
+    <div class="mt"><b class="split">Todo lo que pasó</b><span class="hand2">de cero hasta aquí</span></div>
+    <div class="cnt">Progreso<b id="mcount">0%</b></div>
+  </section>
+
+  <section class="scn" id="end">
+    <div class="etitle"><div class="big split">JUANITO</div><div class="hand" id="ehand">desde cero</div></div>
+    <div class="ek" id="ek">Continuará…</div>
+  </section>
+
+  <div id="black"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script>
+(() => {
+'use strict';
+// =====================================================================
+// CAPITULOS — cambia aquí los textos de la serie (son de ejemplo).
+// progreso: hasta qué punto llega Juanito al final del capítulo (0–100).
+// =====================================================================
+const CAPITULOS = [
+  { titulo: 'El punto de partida', sub: 'Todo empieza con las manos vacías.', color: '#ffb547', progreso: 10,
+    momentos: [['Primer día', 'Juanito arranca sin plan y sin experiencia, solo con ganas.'], ['La decisión', 'Esta vez decide no rendirse.'], ['La promesa', 'Empezar desde cero no es empezar mal.']] },
+  { titulo: 'Los primeros pasos', sub: 'Aprender, fallar y volver a intentar.', color: '#5ad1ff', progreso: 28,
+    momentos: [['Aprender', 'Cada día, una cosa nueva.'], ['El primer error', 'Sale mal, y aun así lo intenta otra vez.'], ['La rutina', 'Pasos pequeños que nadie ve.']] },
+  { titulo: 'La caída', sub: 'Caer también es parte del camino.', color: '#ff6b6b', progreso: 20,
+    momentos: [['El tropiezo', 'El golpe más duro de la temporada.'], ['Las dudas', '¿Vale la pena seguir?'], ['Levantarse', 'Se levanta, y vuelve más fuerte.']] },
+  { titulo: 'La gente que suma', sub: 'Nadie llega lejos solo.', color: '#7cf29a', progreso: 48,
+    momentos: [['Los amigos', 'Los que se quedan cuando todo va mal.'], ['La familia', 'El apoyo que siempre estuvo ahí.'], ['El equipo', 'Juntos llegan más lejos.']] },
+  { titulo: 'El gran reto', sub: 'Todo lo aprendido, puesto a prueba.', color: '#c58bff', progreso: 75,
+    momentos: [['La prueba', 'El momento que lo cambia todo.'], ['La presión', 'La escena más tensa de la serie.'], ['Lo logra', 'De cero a algo que es suyo.']] },
+  { titulo: 'Lo que viene', sub: 'El final de una etapa y el comienzo de otra.', color: '#ffd36e', progreso: 100,
+    momentos: [['Mirar atrás', 'Desde cero hasta aquí.'], ['Nuevas metas', 'El siguiente nivel ya empezó.'], ['Continuará', 'La historia de Juanito sigue.']] },
+];
+
+const FPS = 30, INTRO = 10, CH_LEN = 15.5, CH0 = INTRO;
+const MONT = CH0 + CAPITULOS.length * CH_LEN, MONT_LEN = 11, END = MONT + MONT_LEN, DUR = END + 7;
+const RENDER = /[?&#]render/.test(location.search + location.hash);
+if (RENDER) document.body.classList.add('render');
+const $ = (id) => document.getElementById(id);
+const clamp01 = (x) => Math.max(0, Math.min(1, x));
+const smooth = (a, b, x) => { const k = clamp01((x - a) / (b - a)); return k * k * (3 - 2 * k); };
+const easeIO = (k) => k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+
+// ---------- character (simple 2D Juanito) ----------
+const AVATAR = `<svg class="avsvg" viewBox="-75 -214 150 220" width="150" height="220" overflow="visible">
+  <ellipse cx="0" cy="2" rx="46" ry="8" fill="rgba(0,0,0,.35)"/>
+  <g class="body">
+    <g class="legL"><rect x="-17" y="-70" width="16" height="70" rx="8" fill="#2b3a67"/><rect x="-22" y="-8" width="26" height="12" rx="6" fill="#f4f1ea"/></g>
+    <g class="legR"><rect x="1" y="-70" width="16" height="70" rx="8" fill="#22305a"/><rect x="-2" y="-8" width="26" height="12" rx="6" fill="#f4f1ea"/></g>
+    <g class="armR"><rect x="20" y="-146" width="15" height="62" rx="7.5" fill="#e0a24a"/><circle cx="27.5" cy="-84" r="9" fill="#c98b5e"/></g>
+    <rect x="-30" y="-150" width="60" height="88" rx="22" fill="#ffb547"/>
+    <text x="0" y="-98" text-anchor="middle" font-family="Bricolage Grotesque, sans-serif" font-weight="800" font-size="34" fill="#3a2410">0</text>
+    <g class="armL"><rect x="-35" y="-146" width="15" height="62" rx="7.5" fill="#f2bd63"/><circle cx="-27.5" cy="-84" r="9" fill="#d89a6c"/></g>
+    <rect x="-8" y="-162" width="16" height="16" fill="#c98b5e"/>
+    <circle cx="0" cy="-186" r="30" fill="#d89a6c"/>
+    <path d="M-31 -192 Q-30 -222 0 -222 Q30 -222 31 -192 Z" fill="#ff4d5e"/>
+    <rect x="4" y="-198" width="40" height="9" rx="4.5" fill="#e03a4c"/>
+    <circle class="eye" cx="-10" cy="-184" r="3.6" fill="#1b1410"/><circle class="eye" cx="11" cy="-184" r="3.6" fill="#1b1410"/>
+    <path d="M-9 -172 Q1 -164 11 -172" stroke="#1b1410" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </g></svg>`;
+function avatar(parent, id) { const d = document.createElement('div'); d.className = 'avatar'; d.id = id; d.innerHTML = AVATAR; parent.appendChild(d); return d; }
+
+// ---------- build scenes ----------
+const chWrap = $('chapters');
+CAPITULOS.forEach((c, i) => {
+  const s = document.createElement('section'); s.className = 'scn chap'; s.id = 'ch' + i; s.style.setProperty('--acc', c.color);
+  s.innerHTML = `
+    <div class="left">
+      <div class="num">${String(i + 1).padStart(2, '0')}</div>
+      <div class="kick">Capítulo ${i + 1}</div>
+      <div class="ttl split">${c.titulo}</div>
+      <div class="sub">${c.sub}</div>
+    </div>
+    <div class="cards">${c.momentos.map((m, k) => `<div class="card"><div class="ic">${k + 1}</div><div><small>${m[0]}</small><p>${m[1]}</p></div></div>`).join('')}</div>
+    <div class="prog"><div class="row"><span>Progreso de Juanito</span><b class="pv">0%</b></div><div class="trk"><div class="fill"></div></div></div>
+    <div class="wipe" style="background:${c.color}"></div>`;
+  chWrap.appendChild(s);
+});
+document.querySelectorAll('.split').forEach(el => {
+  el.innerHTML = el.textContent.trim().split(' ').map(w => `<span class="w">${[...w].map(ch => `<span class="chr">${ch}</span>`).join('')}</span>`).join(' ');
+});
+const avIntro = avatar($('intro'), 'avIntro'); avIntro.style.left = '1540px'; avIntro.style.top = '930px';
+const avMont = avatar($('montage'), 'avMont');
+const avEnd = avatar($('end'), 'avEnd'); avEnd.style.left = '960px'; avEnd.style.top = '1010px';
+
+// ---------- montage chart ----------
+const pts = [0, ...CAPITULOS.map(c => c.progreso)];
+const X0 = 260, X1 = 1660, Y0 = 860, Y1 = 400;
+const P = pts.map((v, i) => [X0 + (X1 - X0) * i / (pts.length - 1), Y0 - (Y0 - Y1) * v / 100]);
+{
+  const svg = $('chart'); const NS = 'http://www.w3.org/2000/svg';
+  const mk = (tag, a) => { const n = document.createElementNS(NS, tag); for (const k in a) n.setAttribute(k, a[k]); svg.appendChild(n); return n; };
+  const defs = document.createElementNS(NS, 'defs'); svg.appendChild(defs);
+  defs.innerHTML = `<linearGradient id="lg" x1="${X0}" x2="${X1}" y1="0" y2="0" gradientUnits="userSpaceOnUse">${CAPITULOS.map((c, i) => `<stop offset="${(i + 1) / CAPITULOS.length}" stop-color="${c.color}"/>`).join('')}</linearGradient>`;
+  for (let g = 0; g <= 4; g++) { const y = Y0 - (Y0 - Y1) * g / 4; mk('line', { x1: X0, x2: X1, y1: y, y2: y, stroke: 'rgba(255,255,255,.08)', 'stroke-width': 2, class: 'grid' }); mk('text', { x: X0 - 26, y: y + 8, 'text-anchor': 'end', fill: 'rgba(255,255,255,.4)', 'font-size': 22, 'font-family': 'Inter', class: 'grid' }).textContent = g * 25 + '%'; }
+  const d = P.map((p, i) => (i ? 'L' : 'M') + p[0] + ' ' + p[1]).join(' ');
+  mk('path', { d, fill: 'none', stroke: 'url(#lg)', 'stroke-width': 26, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: .25, id: 'lineGlow', filter: 'blur(8px)' });
+  mk('path', { d, fill: 'none', stroke: 'url(#lg)', 'stroke-width': 9, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', id: 'line' });
+  P.forEach((p, i) => {
+    const g = document.createElementNS(NS, 'g'); g.setAttribute('class', 'pt'); g.setAttribute('opacity', 0); svg.appendChild(g);
+    const col = i ? CAPITULOS[i - 1].color : '#ffffff';
+    g.innerHTML = `<circle cx="${p[0]}" cy="${p[1]}" r="16" fill="#0d0b12" stroke="${col}" stroke-width="6"/>
+      <text class="pv" x="${p[0]}" y="${p[1] - 34}" text-anchor="middle" fill="${col}">${pts[i]}%</text>
+      <text class="pl" x="${p[0]}" y="${Y0 + 64}" text-anchor="middle" opacity=".75">${i ? 'Cap. ' + i : 'Inicio'}</text>`;
+  });
+}
+const lineEl = $('line'), glowEl = $('lineGlow'), LINE_LEN = lineEl.getTotalLength();
+const segLen = []; let accLen = 0; segLen.push(0); for (let i = 1; i < P.length; i++) { accLen += Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); segLen.push(accLen); }
+const ptEls = [...document.querySelectorAll('#chart .pt')];
+
+// ---------- master timeline ----------
+const tl = gsap.timeline({ paused: true, defaults: { ease: 'power3.out' } });
+const RING = 2 * Math.PI * 236;
+// intro
+tl.fromTo('#zero b', { scale: 2.6, opacity: 0, filter: 'blur(30px)' }, { scale: 1, opacity: 1, filter: 'blur(0px)', duration: 1.6, ease: 'expo.out' }, .4)
+  .fromTo('#ring', { strokeDasharray: RING, strokeDashoffset: RING }, { strokeDashoffset: 0, duration: 2.2, ease: 'power2.inOut' }, .7)
+  .to('#zero', { x: -560, scale: .6, duration: 1.3, ease: 'expo.inOut' }, 3)
+  .fromTo('#intro .ititle .chr', { yPercent: 115, rotation: 8 }, { yPercent: 0, rotation: 0, stagger: .05, duration: 1, ease: 'expo.out' }, 3.5)
+  .fromTo('#ihand', { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 1.3, ease: 'power2.inOut' }, 4.4)
+  .fromTo('#ikick', { opacity: 0, letterSpacing: '1.1em' }, { opacity: 1, letterSpacing: '.4em', duration: 1.5 }, 5.2)
+  .fromTo('#avIntro', { x: 420, opacity: 0 }, { x: 0, opacity: 1, duration: 2.2, ease: 'power2.out' }, 5.4)
+  .to('#zero', { rotation: 6, duration: 3, ease: 'sine.inOut' }, 5.5)
+  .to('#intro', { opacity: 0, scale: 1.08, filter: 'blur(18px)', duration: .9, ease: 'power2.in' }, INTRO - .9)
+  .set('#intro', { visibility: 'hidden' }, INTRO);
+// chapters
+CAPITULOS.forEach((c, i) => {
+  const s = CH0 + i * CH_LEN, g = '#ch' + i, prev = i ? CAPITULOS[i - 1].progreso : 0;
+  const counter = { v: prev }, pv = document.querySelector(`${g} .pv`);
+  tl.set(g, { visibility: 'visible', opacity: 1 }, s)
+    .fromTo(`${g} .wipe`, { xPercent: -101 }, { xPercent: 0, duration: .5, ease: 'power3.in', immediateRender: false }, s - .5)
+    .set(g, { visibility: 'visible', opacity: 1 }, s - .5)
+    .to(`${g} .wipe`, { xPercent: 101, duration: .7, ease: 'power3.out' }, s + .05)
+    .fromTo(`${g} .num`, { opacity: 0, x: -120 }, { opacity: 1, x: 0, duration: 1.2, ease: 'expo.out' }, s + .35)
+    .fromTo(`${g} .kick`, { opacity: 0, letterSpacing: '.9em' }, { opacity: 1, letterSpacing: '.4em', duration: 1.1 }, s + .55)
+    .fromTo(`${g} .ttl .chr`, { yPercent: 115 }, { yPercent: 0, stagger: .022, duration: 1, ease: 'expo.out' }, s + .65)
+    .fromTo(`${g} .sub`, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: .9 }, s + 1.4)
+    .fromTo(`${g} .prog`, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: .9 }, s + 1.8)
+    .fromTo(`${g} .fill`, { width: prev + '%' }, { width: c.progreso + '%', duration: 9, ease: 'power2.inOut' }, s + 2.4)
+    .fromTo(counter, { v: prev }, { v: c.progreso, duration: 9, ease: 'power2.inOut', onUpdate: () => { pv.textContent = Math.round(counter.v) + '%'; } }, s + 2.4);
+  const cards = document.querySelectorAll(`${g} .card`);
+  cards.forEach((card, k) => {
+    const t = s + 2.4 + k * 3.3;
+    tl.fromTo(card, { opacity: 0, y: 160, rotationX: 55, rotationY: -20, scale: .82, filter: 'blur(10px)' }, { opacity: 1, y: 0, rotationX: 0, rotationY: 0, scale: 1, filter: 'blur(0px)', duration: 1.4, ease: 'expo.out' }, t)
+      .fromTo(card.querySelector('.ic'), { scale: 0, rotation: -90 }, { scale: 1, rotation: 0, duration: 1, ease: 'back.out(2.2)' }, t + .25);
+    if (k > 0) tl.to(cards[k - 1], { opacity: .5, scale: .965, duration: .8, ease: 'power2.out' }, t + .2);
+  });
+  tl.to(cards, { opacity: 1, scale: 1, duration: .6, stagger: .06 }, s + 12.4)
+    .to(`${g} .cards`, { rotationY: -8, rotationX: 4, duration: 2.2, ease: 'sine.inOut' }, s + 12.2)
+    .to(cards, { y: -90, opacity: 0, filter: 'blur(12px)', stagger: .07, duration: .7, ease: 'power2.in' }, s + 14.6)
+    .to(`${g} .left, ${g} .prog`, { x: -80, opacity: 0, filter: 'blur(10px)', duration: .7, ease: 'power2.in' }, s + 14.7)
+    .set(g, { visibility: 'hidden' }, s + CH_LEN);
+});
+// montage
+tl.set('#montage', { visibility: 'visible', opacity: 1 }, MONT)
+  .fromTo('#montage', { opacity: 0 }, { opacity: 1, duration: .6, ease: 'none' }, MONT)
+  .fromTo('#montage .mt .chr', { yPercent: 115 }, { yPercent: 0, stagger: .025, duration: 1, ease: 'expo.out' }, MONT + .2)
+  .fromTo('#montage .mt .hand2', { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 1.1, ease: 'power2.inOut' }, MONT + .9)
+  .fromTo('#montage .cnt', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: .9 }, MONT + .6)
+  .fromTo('#chart .grid', { opacity: 0 }, { opacity: 1, duration: 1, stagger: .05 }, MONT + .3)
+  .to('#montage', { opacity: 0, scale: 1.06, filter: 'blur(16px)', duration: .9, ease: 'power2.in' }, END - .9)
+  .set('#montage', { visibility: 'hidden' }, END);
+// end
+tl.set('#end', { visibility: 'visible', opacity: 1 }, END)
+  .fromTo('#end .chr', { yPercent: 115, rotation: -6 }, { yPercent: 0, rotation: 0, stagger: .06, duration: 1.2, ease: 'expo.out' }, END + .2)
+  .fromTo('#ehand', { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 1.3, ease: 'power2.inOut' }, END + 1.1)
+  .fromTo('#ek', { opacity: 0, letterSpacing: '1.2em' }, { opacity: 1, letterSpacing: '.5em', duration: 1.6 }, END + 2)
+  .fromTo('#avEnd', { y: 260 }, { y: 0, duration: 1.4, ease: 'back.out(1.4)' }, END + 1.6)
+  .set({}, {}, DUR);
+
+// ---------- per-frame procedural layer (background, character motion, chart) ----------
+const bg = $('bg'), ctx = bg.getContext('2d');
+const noise = document.createElement('canvas'); noise.width = noise.height = 256;
+{ const nx = noise.getContext('2d'), im = nx.createImageData(256, 256); for (let i = 0; i < im.data.length; i += 4) { const v = Math.random() * 255; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; } nx.putImageData(im, 0, 0); }
+const hex = (h) => [1, 3, 5].map(k => parseInt(h.slice(k, k + 2), 16));
+const ACC = CAPITULOS.map(c => hex(c.color));
+const parts = Array.from({ length: 70 }, (_, i) => ({ x: (i * 977) % 1920, y: (i * 613) % 1080, r: 1 + (i % 4) * .8, s: 8 + (i % 7) * 4, p: i * 1.7 }));
+function accentAt(t) {
+  if (t < CH0 - .5) return [255, 181, 71];
+  if (t >= MONT - .5) return [255, 181, 71];
+  const f = (t - CH0 + .5) / CH_LEN, i = Math.min(CAPITULOS.length - 1, Math.floor(f)), k = smooth(.0, .06, f - i);
+  const a = ACC[Math.max(0, i - 1)], b = ACC[i];
+  return i === 0 ? b : a.map((v, j) => v + (b[j] - v) * k);
+}
+function drawBg(t) {
+  const [r, g, b] = accentAt(t);
+  ctx.fillStyle = '#0b0a10'; ctx.fillRect(0, 0, 1920, 1080);
+  const blobs = [[960 + Math.sin(t * .21) * 520, 420 + Math.cos(t * .17) * 160, 820, .38], [380 + Math.cos(t * .13) * 220, 900 + Math.sin(t * .19) * 90, 640, .22], [1560 + Math.sin(t * .15) * 200, 200 + Math.cos(t * .23) * 120, 560, .2]];
+  blobs.forEach(([x, y, rad, a], i) => {
+    const gr = ctx.createRadialGradient(x, y, 0, x, y, rad);
+    const c = i === 2 ? `90,130,255` : `${r | 0},${g | 0},${b | 0}`;
+    gr.addColorStop(0, `rgba(${c},${a})`); gr.addColorStop(1, `rgba(${c},0)`);
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, 1920, 1080);
+  });
+  ctx.fillStyle = 'rgba(255,255,255,.5)';
+  parts.forEach(p => { const y = (p.y - t * p.s) % 1080; const yy = y < 0 ? y + 1080 : y; ctx.globalAlpha = .15 + .25 * (.5 + .5 * Math.sin(t * 1.3 + p.p)); ctx.beginPath(); ctx.arc(p.x + Math.sin(t * .5 + p.p) * 20, yy, p.r, 0, 6.283); ctx.fill(); });
+  ctx.globalAlpha = .06; const fr = Math.floor(t * 24); ctx.fillStyle = ctx.createPattern(noise, 'repeat');
+  ctx.save(); ctx.translate((fr * 73) % 256, (fr * 151) % 256); ctx.fillRect(-256, -256, 1920 + 512, 1080 + 512); ctx.restore();
+  ctx.globalAlpha = 1;
+  const v = ctx.createRadialGradient(960, 540, 400, 960, 540, 1150); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.65)'); ctx.fillStyle = v; ctx.fillRect(0, 0, 1920, 1080);
+}
+function pose(av, t, walk, wave) {
+  const sw = walk ? Math.sin(t * 9) : 0;
+  const q = (sel) => av.querySelector(sel);
+  q('.legL').setAttribute('transform', `rotate(${sw * 22} 0 -66)`);
+  q('.legR').setAttribute('transform', `rotate(${-sw * 22} 0 -66)`);
+  q('.armL').setAttribute('transform', `rotate(${-sw * 26} -27 -142)`);
+  q('.armR').setAttribute('transform', wave ? `rotate(${-150 + Math.sin(t * 7) * 22} 27 -142)` : `rotate(${sw * 26} 27 -142)`);
+  q('.body').setAttribute('transform', `translate(0 ${walk ? -Math.abs(Math.sin(t * 9)) * 6 : Math.sin(t * 2) * 2})`);
+  const blink = (t % 3.7) < .12 ? .1 : 1; av.querySelectorAll('.eye').forEach(e => e.setAttribute('transform', `translate(0 -184) scale(1 ${blink}) translate(0 184)`));
+}
+function procedural(t) {
+  drawBg(t);
+  pose(avIntro, t, t > 5.4 && t < 7.6, t >= 7.6);
+  pose(avEnd, t, false, t > END + 2.6);
+  // chart drawing
+  const f = easeIO(clamp01((t - MONT - .8) / 7.2)), L = f * LINE_LEN;
+  lineEl.style.strokeDasharray = glowEl.style.strokeDasharray = LINE_LEN;
+  lineEl.style.strokeDashoffset = glowEl.style.strokeDashoffset = LINE_LEN - L;
+  let seg = 1; while (seg < P.length - 1 && segLen[seg] < L) seg++;
+  const k = clamp01((L - segLen[seg - 1]) / (segLen[seg] - segLen[seg - 1] || 1));
+  const ax = P[seg - 1][0] + (P[seg][0] - P[seg - 1][0]) * k, ay = P[seg - 1][1] + (P[seg][1] - P[seg - 1][1]) * k;
+  avMont.style.left = (ax - 70 * smooth(.92, 1, f)) + 'px'; avMont.style.top = (ay - 10) + 'px';
+  pose(avMont, t, f > 0 && f < 1, f >= 1);
+  ptEls.forEach((el, i) => { const pf = segLen[i] / accLen; const a = clamp01((L / accLen - pf + .075) * 14 + (i === 0 ? 1 : 0)); el.setAttribute('opacity', a); });
+  let val = 0; for (let i = 1; i < P.length; i++) { if (L >= segLen[i]) val = pts[i]; else { val = pts[i - 1] + (pts[i] - pts[i - 1]) * clamp01((L - segLen[i - 1]) / (segLen[i] - segLen[i - 1])); break; } }
+  $('mcount').textContent = Math.round(f > 0 ? val : 0) + '%';
+  $('black').style.opacity = Math.max(1 - smooth(0, .8, t), smooth(DUR - 1.2, DUR, t)).toFixed(3);
+}
+function renderAt(t) { tl.time(Math.min(t, DUR - .001), false); procedural(t); }
+window.__renderAt = (t) => { renderAt(t); return true; };
+window.__DUR = DUR;
+
+// ---------- soundtrack (rendered offline so it stays in sync with the timeline) ----------
+async function renderMusic(sr) {
+  const ac = new OfflineAudioContext(2, Math.ceil(sr * DUR), sr);
+  const out = ac.createGain(); out.gain.value = .8; out.connect(ac.destination);
+  const verb = ac.createConvolver(); const ir = ac.createBuffer(2, sr * 2.2, sr);
+  for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3); }
+  verb.buffer = ir; const vg = ac.createGain(); vg.gain.value = .22; verb.connect(vg); vg.connect(out);
+  const nb = ac.createBuffer(1, sr, sr); { const d = nb.getChannelData(0); for (let i = 0; i < sr; i++) d[i] = Math.random() * 2 - 1; }
+  const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  const tone = (m, t0, dur, type, vol, cut, wet) => { const o = ac.createOscillator(); o.type = type; o.frequency.value = mtof(m); const f = ac.createBiquadFilter(); f.frequency.value = cut; const g = ac.createGain();
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + .015); g.gain.exponentialRampToValueAtTime(vol * .35, t0 + dur * .4); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+    o.connect(f); f.connect(g); g.connect(out); if (wet) g.connect(verb); o.start(t0); o.stop(t0 + dur + .05); };
+  const hit = (t0, type, vol) => {
+    if (type === 'k') { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(130, t0); o.frequency.exponentialRampToValueAtTime(42, t0 + .18); g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(.001, t0 + .32); o.connect(g); g.connect(out); o.start(t0); o.stop(t0 + .35); return; }
+    const s = ac.createBufferSource(); s.buffer = nb; const f = ac.createBiquadFilter(); f.type = type === 's' ? 'bandpass' : 'highpass'; f.frequency.value = type === 's' ? 1900 : 7500;
+    const g = ac.createGain(); const d = type === 's' ? .2 : .045; g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(.001, t0 + d); s.connect(f); f.connect(g); g.connect(out); if (type === 's') g.connect(verb); s.start(t0, Math.random() * .5); s.stop(t0 + d + .02);
+  };
+  const beat = 60 / 88, bar = beat * 4;
+  const CH = [[53, 57, 60, 64], [52, 55, 59, 62], [50, 53, 57, 60], [48, 52, 55, 59]], ROOT = [41, 40, 38, 36];
+  for (let n = 0, t = 0; t < DUR; n++, t += bar) {
+    const c = CH[n % 4], full = t > 6.5 && t < END + 3, lead = t > MONT - .2 && t < END + 2;
+    c.forEach((m, j) => { tone(m, t + j * .012, bar * 1.05, 'sine', .05, 2400, true); tone(m + 12, t + .02, bar * .6, 'triangle', .012, 3200, true); });
+    if (full) {
+      [0, 2.5, 3].forEach(bt => tone(ROOT[n % 4] - 12 + (bt === 3 ? 12 : 0), t + bt * beat, beat * .9, 'triangle', .16, 380, false));
+      [0, 2].forEach(bt => hit(t + bt * beat, 'k', .55)); [1, 3].forEach(bt => hit(t + bt * beat, 's', .16));
+      for (let h = 0; h < 8; h++) hit(t + h * beat / 2 + (h % 2 ? beat * .06 : 0), 'h', h % 2 ? .03 : .05);
+    }
+    if (lead) for (let a = 0; a < 16; a++) tone(c[(a * 3) % 4] + 24, t + a * beat / 4, beat / 3, 'triangle', .03, 4200, true);
+  }
+  out.gain.setValueAtTime(.8, DUR - 4); out.gain.linearRampToValueAtTime(0, DUR - .3);
+  return ac.startRendering();
+}
+window.__renderAudio = async () => {
+  const sr = 44100, buf = await renderMusic(sr); const L = buf.getChannelData(0), R = buf.getChannelData(1), N = L.length;
+  const bytes = new Uint8Array(44 + N * 4), dv = new DataView(bytes.buffer); const w = (o, s) => [...s].forEach((c, i) => dv.setUint8(o + i, c.charCodeAt(0)));
+  w(0, 'RIFF'); dv.setUint32(4, 36 + N * 4, true); w(8, 'WAVE'); w(12, 'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 2, true); dv.setUint32(24, sr, true); dv.setUint32(28, sr * 4, true); dv.setUint16(32, 4, true); dv.setUint16(34, 16, true); w(36, 'data'); dv.setUint32(40, N * 4, true);
+  for (let i = 0; i < N; i++) { dv.setInt16(44 + i * 4, Math.max(-1, Math.min(1, L[i])) * 32767, true); dv.setInt16(46 + i * 4, Math.max(-1, Math.min(1, R[i])) * 32767, true); }
+  let bin = ''; for (let i = 0; i < bytes.length; i += 32768) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 32768)); return btoa(bin);
+};
+
+if (RENDER) { renderAt(0); window.__ready = true; return; }
+
+// =====================================================================
+// Editor shell
+// =====================================================================
+const stage = $('stage'), screen = $('screen');
+screen.appendChild(stage);
+const viewer = screen.parentElement;
+const fit = () => {
+  const cs = getComputedStyle(viewer), pw = viewer.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), ph = viewer.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  const w = Math.max(160, Math.min(pw, ph * 16 / 9)); screen.style.width = w + 'px'; screen.style.height = (w * 9 / 16) + 'px'; stage.style.transform = `scale(${w / 1920})`;
+};
+new ResizeObserver(fit).observe(viewer); fit();
+
+const SCENES = [{ name: 'Intro', sub: 'Título', start: 0, len: INTRO, color: '#ffb547' },
+  ...CAPITULOS.map((c, i) => ({ name: `Cap. ${i + 1}`, sub: c.titulo, start: CH0 + i * CH_LEN, len: CH_LEN, color: c.color })),
+  { name: 'Montaje', sub: 'De cero a 100%', start: MONT, len: MONT_LEN, color: '#ff8a5c' }, { name: 'Final', sub: 'Continuará', start: END, len: DUR - END, color: '#e8e8ee' }];
+const pct = (t) => (t / DUR * 100) + '%';
+const fmt = (t) => { const f = Math.floor(t * FPS + 1e-6), s = Math.floor(f / FPS); return `00:${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}:${String(f % FPS).padStart(2, '0')}`; };
+const ruler = $('ruler'); for (let s = 0; s <= DUR; s += 10) { const sp = document.createElement('span'); sp.style.left = pct(s); sp.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; ruler.appendChild(sp); }
+SCENES.forEach(sc => {
+  const c = document.createElement('div'); c.className = 'clip'; c.style.left = pct(sc.start); c.style.width = `calc(${pct(sc.len)} - 2px)`; c.style.background = sc.color; c.textContent = sc.name + ' · ' + sc.sub; $('trkV1').appendChild(c);
+  const t2 = document.createElement('div'); t2.className = 'clip t2'; t2.style.left = `calc(${pct(sc.start + .4)})`; t2.style.width = `calc(${pct(Math.min(5, sc.len - .8))})`; t2.textContent = 'T ' + sc.sub; $('trkV2').appendChild(t2);
+});
+const list = $('sceneList'); const sceneBtns = SCENES.map(sc => { const b = document.createElement('button'); b.type = 'button'; b.className = 'scene'; b.innerHTML = `<i style="background:${sc.color}"></i><span><b>${sc.name}</b><small>${sc.sub}</small></span><em>${fmt(sc.start).slice(3, 8)}</em>`; b.onclick = () => seek(sc.start + .01); list.appendChild(b); return b; });
+
+const wave = $('wave'); let audioBuf = null;
+function drawWave() {
+  const w = wave.clientWidth, h = wave.clientHeight; if (!w) return; wave.width = w * devicePixelRatio; wave.height = h * devicePixelRatio;
+  const x = wave.getContext('2d'); x.scale(devicePixelRatio, devicePixelRatio); x.fillStyle = 'rgba(90,209,255,.75)';
+  for (let i = 0; i < w; i += 2) {
+    let a;
+    if (audioBuf) { const d = audioBuf.getChannelData(0), s0 = Math.floor(i / w * d.length), s1 = Math.floor((i + 2) / w * d.length); let m = 0; for (let k = s0; k < s1; k += 64) m = Math.max(m, Math.abs(d[k])); a = Math.min(1, m * 1.8); }
+    else { const t = i / w * DUR; a = (t < 6.5 ? .25 : .55) * (.6 + .4 * Math.abs(Math.sin(t * 9.2))) * (1 - smooth(DUR - 4, DUR, t)); }
+    const hh = Math.max(1, a * (h - 6)); x.fillRect(i, (h - hh) / 2, 1.4, hh);
+  }
+}
+new ResizeObserver(drawWave).observe(wave);
+
+let t = 0, playing = false, last = 0;
+const head = $('head'), tc = $('tc'), btnPlay = $('btnPlay'), tlEl = $('tl');
+const PLAY = '<svg width="14" height="16" viewBox="0 0 14 16"><path d="M1 1l12 7-12 7z" fill="currentColor"/></svg>', PAUSE = '<svg width="14" height="16" viewBox="0 0 14 16"><rect x="1" y="1" width="4" height="14" rx="1" fill="currentColor"/><rect x="9" y="1" width="4" height="14" rx="1" fill="currentColor"/></svg>';
+function ui() {
+  head.style.left = `calc(44px + (100% - 44px) * ${t / DUR})`;
+  tc.innerHTML = `${fmt(t)} <span>/ ${fmt(DUR)}</span>`; tlEl.setAttribute('aria-valuenow', t.toFixed(1));
+  const cur = SCENES.findIndex(sc => t >= sc.start && t < sc.start + sc.len); sceneBtns.forEach((b, i) => b.classList.toggle('on', i === cur));
+  btnPlay.innerHTML = playing ? PAUSE : PLAY; btnPlay.setAttribute('aria-label', playing ? 'Pausa' : 'Reproducir');
+}
+function seek(v) { t = Math.max(0, Math.min(DUR, v)); renderAt(t); ui(); if (playing) startSound(); }
+function setPlaying(p) { if (p && t >= DUR - .05) t = 0; playing = p; last = performance.now(); if (p) startSound(); else stopSound(); ui(); }
+btnPlay.onclick = () => setPlaying(!playing);
+$('btnStart').onclick = () => seek(0); $('btnBack').onclick = () => seek(t - 5); $('btnFwd').onclick = () => seek(t + 5);
+$('btnOnly').onclick = (e) => { const on = document.body.classList.toggle('only'); e.currentTarget.setAttribute('aria-pressed', String(on)); };
+addEventListener('keydown', (e) => {
+  if (e.target.closest('button') && e.code === 'Space') return;
+  if (e.code === 'Space') { e.preventDefault(); setPlaying(!playing); } else if (e.key === 'ArrowLeft') seek(t - (e.shiftKey ? 5 : 1 / FPS)); else if (e.key === 'ArrowRight') seek(t + (e.shiftKey ? 5 : 1 / FPS));
+});
+const scrub = (e) => { const r = tlEl.getBoundingClientRect(); seek((e.clientX - r.left - 44) / (r.width - 44) * DUR); };
+tlEl.addEventListener('pointerdown', (e) => { tlEl.setPointerCapture(e.pointerId); scrub(e); tlEl.onpointermove = scrub; });
+tlEl.addEventListener('pointerup', () => { tlEl.onpointermove = null; });
+
+// sound, synced to the playhead
+let ac = null, src = null, soundOn = false; const btnSound = $('btnSound');
+function stopSound() { if (src) { try { src.stop(); } catch (_) {} src = null; } }
+function startSound() { stopSound(); if (!soundOn || !audioBuf || !playing) return; src = ac.createBufferSource(); src.buffer = audioBuf; src.connect(ac.destination); src.start(0, Math.min(t, DUR - .05)); }
+btnSound.onclick = async () => {
+  soundOn = !soundOn; btnSound.setAttribute('aria-pressed', String(soundOn));
+  if (!soundOn) { stopSound(); return; }
+  if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+  if (ac.state === 'suspended') await ac.resume();
+  if (!audioBuf) { btnSound.textContent = 'Cargando…'; audioBuf = await renderMusic(ac.sampleRate); btnSound.textContent = 'Sonido'; drawWave(); }
+  startSound();
+};
+
+function loop(now) {
+  if (playing) { t += (now - last) / 1000; if (t >= DUR) { t = DUR; playing = false; stopSound(); } renderAt(t); ui(); }
+  last = now; requestAnimationFrame(loop);
+}
+seek(7); // open on the finished title frame
+document.fonts && document.fonts.ready.then(() => { renderAt(t); });
+requestAnimationFrame((n) => { last = n; loop(n); });
+})();
+</script>
