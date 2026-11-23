@@ -1,0 +1,280 @@
+<title>Juanito desde Cero · Edit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@500;600;700;800;900&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+  /* Layout: one centered 9:16 player sized to the viewport height, transport bar under it; dark single-theme */
+  :root {
+    --bg: #0a0b0f;
+    --panel: #15171d;
+    --line: #2a2d36;
+    --text: #f2f3f6;
+    --dim: #8b90a0;
+    --yellow: #ffd23f;
+    --cyan: #29d3ff;
+    --pink: #ff3d7f;
+    --display: "Anton", "Impact", "Arial Narrow", sans-serif;
+    --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--body); overflow: hidden; }
+  .app { height: 100%; display: grid; grid-template-rows: minmax(0, 1fr) auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .view { display: grid; place-items: center; min-height: 0; padding-block: 14px 8px; }
+  .screen { position: relative; overflow: hidden; border-radius: 22px; background: #000; box-shadow: 0 0 0 1px #262932, 0 30px 70px rgba(0, 0, 0, .6); }
+  .bar { display: flex; align-items: center; gap: 10px; padding-block: 8px 14px; max-width: 760px; width: 100%; margin: 0 auto; }
+  .bar button { font: 700 12px var(--body); color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; cursor: pointer; white-space: nowrap; }
+  .bar button:focus-visible, #scrub:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
+  .bar button[aria-pressed="true"] { color: var(--yellow); border-color: var(--yellow); }
+  #scrub { flex: 1; min-width: 0; accent-color: var(--yellow); }
+  .tc { font: 500 12px var(--mono); color: var(--dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* ---------- 1080×1920 stage ---------- */
+  #stage { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; transform-origin: 0 0; overflow: hidden; background: #000; color: #fff; }
+  .layer { position: absolute; inset: 0; visibility: hidden; }
+  .full { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; will-change: transform, filter; }
+  .blurbg { position: absolute; inset: -60px; width: calc(100% + 120px); height: calc(100% + 120px); object-fit: cover; filter: blur(40px) brightness(.45) saturate(1.3); }
+  .shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, .35) 0%, rgba(0, 0, 0, 0) 22%, rgba(0, 0, 0, 0) 48%, rgba(0, 0, 0, .7) 100%); }
+  .cap { position: absolute; left: 60px; right: 60px; top: 1180px; text-align: center; font: 400 112px/1.02 var(--display); text-transform: uppercase; letter-spacing: .01em;
+    -webkit-text-stroke: 10px #000; paint-order: stroke fill; text-shadow: 0 10px 0 rgba(0, 0, 0, .55); }
+  .cap .wd { display: inline-block; margin: 0 .12em; }
+  .cap .hl { color: var(--yellow); }
+  .sticker { position: absolute; left: 60px; top: 990px; font: 400 76px/1 var(--display); color: #111; background: var(--yellow); padding: 16px 30px 12px; border-radius: 22px; transform: rotate(-4deg); box-shadow: 0 12px 0 rgba(0, 0, 0, .45); }
+  .money { position: absolute; right: 60px; top: 995px; display: flex; align-items: center; gap: 14px; font: 400 70px/1 var(--display); color: #fff; background: rgba(10, 12, 18, .82); border: 3px solid rgba(255, 255, 255, .2); padding: 16px 26px 12px; border-radius: 22px; }
+  .money b { color: var(--yellow); font-weight: 400; font-variant-numeric: tabular-nums; }
+  .dots { position: absolute; left: 60px; right: 60px; top: 1880px; display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
+  .dots i { height: 10px; border-radius: 10px; background: rgba(255, 255, 255, .25); }
+  .dots i.on { background: var(--yellow); box-shadow: 0 0 16px rgba(255, 210, 63, .8); }
+  .big { position: absolute; left: 50px; right: 50px; text-align: center; font: 400 210px/.95 var(--display); text-transform: uppercase; -webkit-text-stroke: 14px #000; paint-order: stroke fill; }
+  .big .y { color: var(--yellow); }
+  .card { position: absolute; border-radius: 36px; overflow: hidden; box-shadow: 0 40px 80px rgba(0, 0, 0, .7), 0 0 0 6px #fff; }
+  .card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .pill { position: absolute; left: 0; right: 0; margin: 0 auto; width: fit-content; white-space: nowrap; font: 400 70px/1 var(--display); background: var(--yellow); color: #111; padding: 26px 46px 20px; border-radius: 28px; text-transform: uppercase; }
+  .handle { position: absolute; left: 0; right: 0; text-align: center; font: 800 46px var(--body); color: #fff; }
+  #flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 30; }
+  #fade { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 31; }
+  #grain { position: absolute; inset: 0; pointer-events: none; z-index: 29; opacity: .07; mix-blend-mode: overlay; }
+  body.render { background: #000; }
+  body.render .app { display: none; }
+  body.render #stage { position: fixed; transform: none !important; }
+</style>
+
+<div class="app">
+  <div class="view"><div class="screen" id="screen"></div></div>
+  <div class="bar">
+    <button id="btnPlay" type="button">Reproducir</button>
+    <input id="scrub" type="range" min="0" max="48" step="0.0333" value="0" aria-label="Posición del video">
+    <span class="tc" id="tc">0:00 / 0:48</span>
+    <button id="btnSound" type="button" aria-pressed="false">Sonido</button>
+  </div>
+</div>
+
+<div id="stage">
+  <!-- hook -->
+  <section class="layer" id="hook">
+    <img class="blurbg" src="img/dia1.jpg" alt="">
+    <div class="big" id="h1" style="top:520px">EMPECÉ<br>CON <span class="y">$0</span></div>
+    <div class="big" id="h2" style="top:1060px;font-size:150px">Y HICE <span class="y">2</span><br>PELÍCULAS</div>
+  </section>
+  <div id="days"></div>
+  <!-- montage -->
+  <section class="layer" id="mont">
+    <img class="blurbg" src="img/poster2.jpg" alt="">
+    <div class="card" id="pA" style="left:90px;top:330px;width:560px;height:840px"><img src="img/poster1.jpg" alt=""></div>
+    <div class="card" id="pB" style="left:430px;top:620px;width:560px;height:840px"><img src="img/poster2.jpg" alt=""></div>
+    <div class="card" id="flick" style="left:190px;top:330px;width:700px;height:1090px;visibility:hidden"><img id="flickImg" src="img/e1.jpg" alt=""></div>
+    <div class="cap" id="mcap" style="top:1580px;font-size:96px"></div>
+  </section>
+  <!-- end -->
+  <section class="layer" id="end">
+    <img class="blurbg" src="img/dia7.jpg" alt="">
+    <div class="big" id="e1" style="top:420px;font-size:150px">PELÍCULA 3</div>
+    <div class="big" id="e2" style="top:600px;font-size:120px;color:var(--cyan)">CAZADORES DE<br>TORMENTAS</div>
+    <div class="pill" id="e3" style="top:1080px">▶ Sígueme para el Día 8</div>
+    <div class="handle" id="e4" style="top:1260px">@JuanitoDesdeCero</div>
+  </section>
+  <canvas id="grain" width="270" height="480"></canvas>
+  <div id="flash"></div>
+  <div id="fade"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script>
+(() => {
+'use strict';
+// Los 7 shorts de @JuanitoDesdeCero. Palabras entre *asteriscos* salen en amarillo.
+const DIAS = [
+  { img: 'img/dia1.jpg', dinero: 0, cap: 'Voy a ganarle a *MARVEL* con *$0*' },
+  { img: 'img/dia2.jpg', dinero: 522, cap: 'Juntaron *$522* y compré la *CÁMARA*' },
+  { img: 'img/dia3.jpg', dinero: 843, cap: 'Contraté un *VILLANO* y destruyó la ciudad' },
+  { img: 'img/dia4.jpg', dinero: 36, cap: 'Metí a *TODOS* al estudio' },
+  { img: 'img/dia5.jpg', dinero: 441, cap: 'Disfraces y *LA SORPRESA*' },
+  { img: 'img/dia6.jpg', dinero: 260, cap: 'El villano se *MEJORA*' },
+  { img: 'img/dia7.jpg', dinero: 668, cap: '¡La *BATALLA FINAL*!' },
+];
+const BPM = 120, B = 60 / BPM;            // 0.5 s per beat
+const HOOK = 6 * B, DAYLEN = 10 * B, D0 = HOOK, MONT = D0 + 7 * DAYLEN, ENDS = MONT + 12 * B, DUR = ENDS + 9 * B; // 3 · 35 · 6 · 4.5 s
+const RENDER = /[?&#]render/.test(location.search + location.hash);
+if (RENDER) document.body.classList.add('render');
+const $ = (id) => document.getElementById(id);
+const words = (s) => s.split(' ').map(w => { const hl = /^\*.*\*[¡!¿?,.]*$|^[¡¿]?\*.*\*$/.test(w) || w.includes('*'); return `<span class="wd${hl ? ' hl' : ''}">${w.replace(/\*/g, '')}</span>`; }).join(' ');
+
+// ---------- build day layers ----------
+const daysEl = $('days');
+DIAS.forEach((d, i) => {
+  const s = document.createElement('section'); s.className = 'layer'; s.id = 'd' + i;
+  s.innerHTML = `<img class="full" src="${d.img}" alt="Día ${i + 1}"><div class="shade"></div>
+    <div class="dots">${DIAS.map((_, k) => `<i class="${k <= i ? 'on' : ''}"></i>`).join('')}</div>
+    <div class="sticker">DÍA ${i + 1}</div>
+    <div class="money">💰 <b>$${d.dinero}</b></div>
+    <div class="cap">${words(d.cap)}</div>`;
+  daysEl.appendChild(s);
+});
+$('mcap').innerHTML = words('*2 películas* en 7 días');
+
+// ---------- timeline ----------
+const tl = gsap.timeline({ paused: true, defaults: { ease: 'power3.out' } });
+const vis = (sel, a, b) => tl.set(sel, { visibility: 'visible' }, a).set(sel, { visibility: 'hidden' }, b);
+const flash = (t, a = .85) => tl.fromTo('#flash', { opacity: a }, { opacity: 0, duration: .35, ease: 'power2.out', immediateRender: false }, t);
+const shake = (sel, t, amp = 18) => tl.to(sel, { keyframes: { x: [amp, -amp, amp * .6, -amp * .4, 0], y: [-amp * .5, amp * .5, -amp * .3, 0, 0] }, duration: .28, ease: 'none' }, t);
+const popWords = (sel, t, gap = .12) => tl.fromTo(sel + ' .wd', { scale: 1.9, opacity: 0, y: 30 }, { scale: 1, opacity: 1, y: 0, duration: .32, stagger: gap, ease: 'back.out(2.6)' }, t);
+
+// hook
+vis('#hook', 0, HOOK);
+tl.fromTo('#hook .blurbg', { scale: 1.3 }, { scale: 1, duration: HOOK, ease: 'none' }, 0)
+  .fromTo('#h1', { scale: 3, opacity: 0, rotation: -8 }, { scale: 1, opacity: 1, rotation: -3, duration: .45, ease: 'expo.out' }, .1);
+shake('#h1', .45, 26);
+tl.fromTo('#h2', { scale: 0, opacity: 0, rotation: 10 }, { scale: 1, opacity: 1, rotation: 2, duration: .5, ease: 'back.out(2.2)' }, 4 * B);
+shake('#h2', 4 * B + .4, 18);
+
+// days
+const TRANS = ['whip', 'zoom', 'flash', 'whip', 'zoom', 'flash', 'whip'];
+DIAS.forEach((d, i) => {
+  const s = D0 + i * DAYLEN, g = '#d' + i, img = g + ' .full', kind = TRANS[i];
+  vis(g, s, s + DAYLEN + .3);
+  // entrance
+  if (kind === 'whip') tl.fromTo(img, { xPercent: 100, filter: 'blur(40px)' }, { xPercent: 0, filter: 'blur(0px)', duration: .3, ease: 'power3.out' }, s);
+  else if (kind === 'zoom') tl.fromTo(img, { scale: 2.2, filter: 'blur(30px)' }, { scale: 1.12, filter: 'blur(0px)', duration: .35, ease: 'expo.out' }, s);
+  else { tl.fromTo(img, { scale: 1.2 }, { scale: 1.1, duration: .3 }, s); flash(s); }
+  // beat zoom punches + slow push
+  for (let k = 0; k < 10; k += 2) tl.fromTo(img, { scale: 1.16 }, { scale: 1.08, duration: B * 1.9, ease: 'power2.out', immediateRender: false }, s + .3 + k * B);
+  shake(img, s + 4 * B, 12);
+  // ui
+  tl.fromTo(g + ' .sticker', { scale: 0, rotation: -30 }, { scale: 1, rotation: -4, duration: .45, ease: 'back.out(3)' }, s + .15)
+    .fromTo(g + ' .money', { x: 300, opacity: 0 }, { x: 0, opacity: 1, duration: .45, ease: 'back.out(1.8)' }, s + .3)
+    .fromTo(g + ' .dots i:nth-child(' + (i + 1) + ')', { scaleX: 0, transformOrigin: '0 50%' }, { scaleX: 1, duration: .6 }, s + .2);
+  const prev = i ? DIAS[i - 1].dinero : 0, o = { v: prev }, bel = document.querySelector(g + ' .money b');
+  tl.fromTo(o, { v: prev }, { v: d.dinero, duration: 1.4, ease: 'power2.out', onUpdate: () => { bel.textContent = '$' + Math.round(o.v); } }, s + .5)
+    .fromTo(g + ' .money', { scale: 1.25 }, { scale: 1, duration: .4, ease: 'back.out(3)', immediateRender: false }, s + 1.9);
+  popWords(g, s + .55, .16);
+  // exit (into next transition)
+  const nxt = TRANS[i + 1] || 'zoom';
+  if (nxt === 'whip') tl.to(img, { xPercent: -100, filter: 'blur(40px)', duration: .3, ease: 'power3.in' }, s + DAYLEN - .3);
+  else if (nxt === 'zoom') tl.to(img, { scale: 2.6, filter: 'blur(30px)', opacity: 0, duration: .3, ease: 'power3.in' }, s + DAYLEN - .3);
+  tl.to(g + ' .cap, ' + g + ' .sticker, ' + g + ' .money', { opacity: 0, y: -40, duration: .25, ease: 'power2.in' }, s + DAYLEN - .3);
+});
+
+// montage: posters slam, then rapid scene flicks on half-beats
+vis('#mont', MONT, ENDS);
+tl.fromTo('#pA', { y: -1400, rotation: -25 }, { y: 0, rotation: -7, duration: .45, ease: 'power4.in' }, MONT)
+  .fromTo('#pB', { y: 1600, rotation: 25 }, { y: 0, rotation: 6, duration: .45, ease: 'power4.in' }, MONT + 2 * B);
+shake('#mont', MONT + .45, 30); flash(MONT + .45, .6); shake('#mont', MONT + 2 * B + .45, 30); flash(MONT + 2 * B + .45, .6);
+popWords('#mont', MONT + 3 * B, .14);
+const FL = ['e1', 'e2', 'e3', 'e4', 'e5', 'f2e1', 'f2e2', 'f2e3', 'f2e4', 'f2e5', 'f2e6', 'f2e7'];
+const flickStart = MONT + 6 * B;
+tl.set('#pA, #pB', { opacity: 0 }, flickStart).set('#flick', { visibility: 'visible' }, flickStart);
+FL.forEach((n, k) => {
+  const t = flickStart + k * (B / 2);
+  tl.set('#flickImg', { attr: { src: `img/${n}.jpg` } }, t)
+    .fromTo('#flick', { scale: 1.12, rotation: k % 2 ? 3 : -3 }, { scale: 1, rotation: 0, duration: B / 2, ease: 'power2.out', immediateRender: false }, t);
+});
+tl.set('#flick', { visibility: 'hidden' }, ENDS);
+// end
+vis('#end', ENDS, DUR + 1);
+flash(ENDS, .9);
+tl.fromTo('#e1', { scale: 2.5, opacity: 0 }, { scale: 1, opacity: 1, duration: .4, ease: 'expo.out' }, ENDS)
+  .fromTo('#e2', { y: 120, opacity: 0 }, { y: 0, opacity: 1, duration: .5, ease: 'back.out(2)' }, ENDS + 2 * B)
+  .fromTo('#e3', { scale: 0 }, { scale: 1, duration: .5, ease: 'back.out(2.6)' }, ENDS + 4 * B)
+  .to('#e3', { scale: 1.06, duration: B, repeat: 3, yoyo: true, ease: 'sine.inOut' }, ENDS + 5 * B)
+  .fromTo('#e4', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: .5 }, ENDS + 5 * B)
+  .fromTo('#end .blurbg', { scale: 1.25 }, { scale: 1, duration: DUR - ENDS, ease: 'none' }, ENDS);
+shake('#e1', ENDS + .4, 22);
+tl.fromTo('#fade', { opacity: 0 }, { opacity: 1, duration: .8, ease: 'none' }, DUR - .8).set({}, {}, DUR);
+
+// grain
+const gc = $('grain'), gx = gc.getContext('2d'), gim = gx.createImageData(270, 480);
+function grain(t) { let s = Math.floor(t * 24) * 9301 + 49297; for (let i = 0; i < gim.data.length; i += 4) { s = (s * 233280 + 49297) % 2147483647; const v = s & 255; gim.data[i] = gim.data[i + 1] = gim.data[i + 2] = v; gim.data[i + 3] = 255; } gx.putImageData(gim, 0, 0); }
+function renderAt(t) { tl.time(Math.min(t, DUR - .001), false); grain(t); }
+window.__renderAt = (t) => { renderAt(t); return true; };
+window.__DUR = DUR;
+
+// ---------- soundtrack: 120 BPM, hits land on the cuts ----------
+async function renderMusic(sr) {
+  const ac = new OfflineAudioContext(2, Math.ceil(sr * DUR), sr);
+  const out = ac.createGain(); out.gain.value = .85; const comp = ac.createDynamicsCompressor(); out.connect(comp); comp.connect(ac.destination);
+  const nb = ac.createBuffer(1, sr, sr); { const d = nb.getChannelData(0); for (let i = 0; i < sr; i++) d[i] = Math.random() * 2 - 1; }
+  const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  const tone = (m, t0, dur, type, vol, cut) => { const o = ac.createOscillator(); o.type = type; o.frequency.value = mtof(m); const f = ac.createBiquadFilter(); f.frequency.value = cut; const g = ac.createGain();
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + .01); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur); o.connect(f); f.connect(g); g.connect(out); o.start(t0); o.stop(t0 + dur + .05); };
+  const noise = (t0, dur, type, freq, vol) => { const s = ac.createBufferSource(); s.buffer = nb; const f = ac.createBiquadFilter(); f.type = type; f.frequency.value = freq; const g = ac.createGain(); g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(.001, t0 + dur); s.connect(f); f.connect(g); g.connect(out); s.start(t0, Math.random() * .5); s.stop(t0 + dur + .02); };
+  const kick = (t0, v = .9) => { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(150, t0); o.frequency.exponentialRampToValueAtTime(40, t0 + .15); g.gain.setValueAtTime(v, t0); g.gain.exponentialRampToValueAtTime(.001, t0 + .35); o.connect(g); g.connect(out); o.start(t0); o.stop(t0 + .4); };
+  const riser = (t0, dur) => { const s = ac.createBufferSource(); s.buffer = nb; s.loop = true; const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 2; f.frequency.setValueAtTime(400, t0); f.frequency.exponentialRampToValueAtTime(6000, t0 + dur); const g = ac.createGain(); g.gain.setValueAtTime(.001, t0); g.gain.exponentialRampToValueAtTime(.25, t0 + dur); s.connect(f); f.connect(g); g.connect(out); s.start(t0); s.stop(t0 + dur); };
+  const CH = [[57, 60, 64], [53, 57, 60], [48, 52, 55], [55, 59, 62]], ROOT = [45, 41, 36, 43];
+  const bars = Math.ceil(DUR / (4 * B));
+  for (let n = 0; n < bars; n++) {
+    const t = n * 4 * B, c = CH[n % 4], drop = t >= HOOK - .01 && t < ENDS + 2 * B;
+    c.forEach(m => tone(m + 12, t, 4 * B, 'sawtooth', drop ? .025 : .035, drop ? 2600 : 900));
+    for (let k = 0; k < 8; k++) tone(ROOT[n % 4] - (k % 2 ? 0 : 12), t + k * B / 2, B / 2 * .85, 'square', .07, 600);
+    if (drop) {
+      for (let k = 0; k < 4; k++) kick(t + k * B);
+      [1, 3].forEach(k => { noise(t + k * B, .18, 'bandpass', 1800, .35); noise(t + k * B + .01, .12, 'highpass', 4000, .15); });
+      for (let k = 0; k < 8; k++) noise(t + k * B / 2, .04, 'highpass', 8000, k % 2 ? .06 : .1);
+      for (let k = 0; k < 8; k++) tone(c[(k * 2) % 3] + 24, t + k * B / 2, B / 2.5, 'triangle', .035, 5000);
+    } else if (t < HOOK) { kick(t, .6); kick(t + 2 * B, .6); }
+  }
+  riser(HOOK - 2 * B, 2 * B); riser(MONT - 2 * B, 2 * B); riser(ENDS - 2 * B, 2 * B);
+  for (let i = 0; i <= 7; i++) { const t = i < 7 ? D0 + i * DAYLEN : MONT; noise(t, .5, 'lowpass', 900, .5); kick(t, 1); } // impact on every cut
+  kick(ENDS, 1); noise(ENDS, .8, 'lowpass', 700, .5);
+  out.gain.setValueAtTime(.85, DUR - 1.5); out.gain.linearRampToValueAtTime(0, DUR);
+  return ac.startRendering();
+}
+window.__renderAudio = async () => {
+  const sr = 44100, buf = await renderMusic(sr); const L = buf.getChannelData(0), R = buf.getChannelData(1), N = L.length;
+  const bytes = new Uint8Array(44 + N * 4), dv = new DataView(bytes.buffer); const w = (o, s) => [...s].forEach((c, i) => dv.setUint8(o + i, c.charCodeAt(0)));
+  w(0, 'RIFF'); dv.setUint32(4, 36 + N * 4, true); w(8, 'WAVE'); w(12, 'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 2, true); dv.setUint32(24, sr, true); dv.setUint32(28, sr * 4, true); dv.setUint16(32, 4, true); dv.setUint16(34, 16, true); w(36, 'data'); dv.setUint32(40, N * 4, true);
+  for (let i = 0; i < N; i++) { dv.setInt16(44 + i * 4, Math.max(-1, Math.min(1, L[i])) * 32767, true); dv.setInt16(46 + i * 4, Math.max(-1, Math.min(1, R[i])) * 32767, true); }
+  let bin = ''; for (let i = 0; i < bytes.length; i += 32768) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 32768)); return btoa(bin);
+};
+
+if (RENDER) { renderAt(0); window.__ready = true; return; }
+
+// ---------- player ----------
+const stage = $('stage'), screen = $('screen'), view = screen.parentElement;
+screen.appendChild(stage);
+const fit = () => { const cs = getComputedStyle(view), pw = view.clientWidth, ph = view.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  const h = Math.max(200, Math.min(ph, pw * 16 / 9)), w = h * 9 / 16; screen.style.width = w + 'px'; screen.style.height = h + 'px'; stage.style.transform = `scale(${w / 1080})`; };
+new ResizeObserver(fit).observe(view); fit();
+const scrub = $('scrub'), tc = $('tc'), btnPlay = $('btnPlay'), btnSound = $('btnSound');
+scrub.max = DUR.toFixed(2);
+const mmss = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+let t = 0, playing = false, last = 0, ac = null, src = null, buf = null, soundOn = false;
+const ui = () => { scrub.value = t; tc.textContent = `${mmss(t)} / ${mmss(DUR)}`; btnPlay.textContent = playing ? 'Pausa' : 'Reproducir'; };
+const stopSound = () => { if (src) { try { src.stop(); } catch (_) {} src = null; } };
+const startSound = () => { stopSound(); if (!soundOn || !buf || !playing) return; src = ac.createBufferSource(); src.buffer = buf; src.connect(ac.destination); src.start(0, Math.min(t, DUR - .05)); };
+const seek = (v) => { t = Math.max(0, Math.min(DUR, v)); renderAt(t); ui(); if (playing) startSound(); };
+const setPlaying = (p) => { if (p && t >= DUR - .05) t = 0; playing = p; last = performance.now(); p ? startSound() : stopSound(); ui(); };
+btnPlay.onclick = () => setPlaying(!playing);
+scrub.oninput = () => seek(parseFloat(scrub.value));
+btnSound.onclick = async () => {
+  soundOn = !soundOn; btnSound.setAttribute('aria-pressed', String(soundOn)); if (!soundOn) { stopSound(); return; }
+  if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') await ac.resume();
+  if (!buf) { btnSound.textContent = 'Cargando…'; buf = await renderMusic(ac.sampleRate); btnSound.textContent = 'Sonido'; } startSound();
+};
+addEventListener('keydown', (e) => { if (e.code === 'Space' && !e.target.closest('button, input')) { e.preventDefault(); setPlaying(!playing); } });
+function loop(now) { if (playing) { t += (now - last) / 1000; if (t >= DUR) { t = DUR; playing = false; stopSound(); } renderAt(t); ui(); } last = now; requestAnimationFrame(loop); }
+seek(D0 + 1.6);
+document.fonts && document.fonts.ready.then(() => renderAt(t));
+requestAnimationFrame((n) => { last = n; loop(n); });
+})();
+</script>
