@@ -1,0 +1,307 @@
+<title>Juanito desde Cero · Football Edit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@600;700;800;900&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+  /* Layout: centered 9:16 player sized to the viewport height with a transport bar; single dark theme like a sports edit */
+  :root {
+    --bg: #07080b;
+    --panel: #14161c;
+    --line: #2a2d36;
+    --text: #f3f4f7;
+    --dim: #8b90a0;
+    --gold: #f6c453;
+    --gold-2: #b8862b;
+    --ice: #9fe7ff;
+    --display: "Anton", "Impact", "Arial Narrow", sans-serif;
+    --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--body); overflow: hidden; }
+  .app { height: 100%; display: grid; grid-template-rows: minmax(0, 1fr) auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .view { display: grid; place-items: center; min-height: 0; padding-block: 14px 8px; }
+  .screen { position: relative; overflow: hidden; border-radius: 22px; background: #000; box-shadow: 0 0 0 1px #262932, 0 30px 70px rgba(0, 0, 0, .6); }
+  .bar { display: flex; align-items: center; gap: 10px; padding-block: 8px 14px; max-width: 760px; width: 100%; margin: 0 auto; }
+  .bar button { font: 700 12px var(--body); color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; cursor: pointer; white-space: nowrap; }
+  .bar button:focus-visible, #scrub:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .bar button[aria-pressed="true"] { color: var(--gold); border-color: var(--gold); }
+  #scrub { flex: 1; min-width: 0; accent-color: var(--gold); }
+  .tc { font: 500 12px var(--mono); color: var(--dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* ---------- 1080×1920 stage ---------- */
+  #stage { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; transform-origin: 0 0; overflow: hidden; background: #000; color: #fff; }
+  .layer { position: absolute; inset: 0; visibility: hidden; }
+  .fx { position: absolute; inset: 0; }
+  .full { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; will-change: transform, filter; }
+  .grade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 10, 30, .45), rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, .75)); mix-blend-mode: multiply; }
+  .vig { position: absolute; inset: 0; background: radial-gradient(120% 80% at 50% 45%, transparent 55%, rgba(0, 0, 0, .75)); }
+  .lbl { position: absolute; left: 0; right: 0; top: 1100px; white-space: nowrap; text-align: center; font: 800 34px var(--body); letter-spacing: .3em; text-transform: uppercase; color: rgba(255, 255, 255, .85); text-shadow: 0 2px 20px rgba(0, 0, 0, .8); }
+  .hype { position: absolute; left: 0; right: 0; text-align: center; white-space: nowrap; font: 400 250px/.9 var(--display); text-transform: uppercase; transform: skewX(-8deg);
+    color: #fff; -webkit-text-stroke: 4px rgba(0, 0, 0, .6); paint-order: stroke fill; text-shadow: 0 0 30px rgba(255, 255, 255, .55), 0 0 80px rgba(159, 231, 255, .45); }
+  .hype.gold { color: var(--gold); text-shadow: 0 0 30px rgba(246, 196, 83, .7), 0 0 90px rgba(246, 196, 83, .45); }
+  .sub { position: absolute; left: 70px; right: 70px; top: 1560px; text-align: center; font: 800 46px/1.2 var(--body); text-shadow: 0 3px 16px rgba(0, 0, 0, .9); }
+  .letter { position: absolute; left: 0; right: 0; height: 0; background: #000; z-index: 20; }
+  .letter.t { top: 0; } .letter.b { bottom: 0; }
+  #leak { position: absolute; inset: 0; z-index: 21; pointer-events: none; mix-blend-mode: screen; opacity: 0;
+    background: radial-gradient(60% 40% at 0% 20%, rgba(255, 120, 40, .9), transparent 70%), radial-gradient(50% 35% at 100% 80%, rgba(255, 50, 80, .7), transparent 70%); }
+  #flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 30; }
+  #fade { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 31; }
+  #grain { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 29; opacity: .09; mix-blend-mode: overlay; }
+  .card { position: absolute; left: 190px; top: 380px; width: 700px; height: 1000px; border-radius: 46px; overflow: hidden; transform-style: preserve-3d;
+    background: linear-gradient(160deg, #fff3c4 0%, var(--gold) 28%, var(--gold-2) 62%, #6e4a12 100%); box-shadow: 0 0 0 6px #fff3c4, 0 0 80px rgba(246, 196, 83, .6), 0 50px 100px rgba(0, 0, 0, .8); color: #2a1a05; }
+  .card .photo { position: absolute; left: 210px; top: 70px; width: 440px; height: 520px; border-radius: 30px; overflow: hidden; border: 5px solid rgba(255, 255, 255, .6); }
+  .card .photo img { width: 100%; height: 100%; object-fit: cover; object-position: 40% 30%; }
+  .card .ovr { position: absolute; left: 44px; top: 70px; font: 400 130px/1 var(--display); }
+  .card .pos { position: absolute; left: 50px; top: 210px; font: 900 40px var(--body); letter-spacing: .05em; }
+  .card .flag { position: absolute; left: 50px; top: 280px; font-size: 60px; }
+  .card .name { position: absolute; left: 0; right: 0; top: 610px; text-align: center; font: 400 104px/1 var(--display); letter-spacing: .03em; }
+  .card .rule { position: absolute; left: 80px; right: 80px; top: 730px; height: 4px; background: rgba(42, 26, 5, .35); border-radius: 4px; }
+  .card .stats { position: absolute; left: 80px; right: 80px; top: 760px; display: grid; grid-template-columns: repeat(3, 1fr); row-gap: 22px; column-gap: 20px; }
+  .card .stats div { display: flex; align-items: baseline; gap: 12px; font: 900 34px var(--body); }
+  .card .stats b { font: 400 58px/1 var(--display); font-variant-numeric: tabular-nums; }
+  .card .shine { position: absolute; inset: -20%; background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, .75) 50%, transparent 60%); transform: translateX(-120%); }
+  .handle { position: absolute; left: 0; right: 0; top: 1500px; text-align: center; font: 800 50px var(--body); }
+  .legend { position: absolute; left: 70px; right: 70px; top: 1580px; text-align: center; font: 700 30px/1.4 var(--body); color: rgba(255, 255, 255, .7); }
+  body.render { background: #000; }
+  body.render .app { display: none; }
+  body.render #stage { position: fixed; transform: none !important; }
+</style>
+
+<div class="app">
+  <div class="view"><div class="screen" id="screen"></div></div>
+  <div class="bar">
+    <button id="btnPlay" type="button">Reproducir</button>
+    <input id="scrub" type="range" min="0" max="48" step="0.0333" value="0" aria-label="Posición del video">
+    <span class="tc" id="tc">0:00 / 0:48</span>
+    <button id="btnSound" type="button" aria-pressed="false">Sonido</button>
+  </div>
+</div>
+
+<div id="stage">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <filter id="rgb" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="r"/>
+      <feOffset id="rOff" in="r" dx="0" dy="0" result="r2"/>
+      <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="g"/>
+      <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="b"/>
+      <feOffset id="bOff" in="b" dx="0" dy="0" result="b2"/>
+      <feBlend in="r2" in2="g" mode="screen" result="rg"/>
+      <feBlend in="rg" in2="b2" mode="screen"/>
+    </filter>
+  </svg>
+
+  <section class="layer" id="hook">
+    <div class="fx"><img class="full" id="hookImg" src="img/dia1.jpg" alt=""></div>
+    <div class="vig"></div>
+    <div class="hype" id="hk1" style="top:640px;font-size:150px">ESTO ES</div>
+    <div class="hype gold" id="hk2" style="top:820px;font-size:270px">JUANITO</div>
+  </section>
+  <div id="days"></div>
+  <section class="layer" id="mont">
+    <div class="fx"><img class="full" id="montImg" src="img/poster1.jpg" alt=""></div>
+    <div class="vig"></div>
+    <div class="hype gold" id="mt1" style="top:1450px;font-size:170px">2 PELÍCULAS</div>
+  </section>
+  <section class="layer" id="cardL">
+    <img class="full" src="img/dia7.jpg" alt="" style="filter:blur(36px) brightness(.35) saturate(1.4);transform:scale(1.15)">
+    <div class="card" id="card">
+      <div class="ovr" id="ovr">99</div><div class="pos">DIR</div><div class="flag">🎬</div>
+      <div class="photo"><img src="img/dia1.jpg" alt="Juanito"></div>
+      <div class="name">JUANITO</div><div class="rule"></div>
+      <div class="stats">
+        <div><b data-v="668">0</b>PRE</div><div><b data-v="2">0</b>PEL</div><div><b data-v="7">0</b>DÍA</div>
+        <div><b data-v="9">0</b>ACT</div><div><b data-v="1">0</b>VIL</div><div><b data-v="148">0</b>SUB</div>
+      </div>
+      <div class="shine" id="shine"></div>
+    </div>
+    <div class="handle" id="hdl">@JuanitoDesdeCero</div>
+    <div class="legend" id="leg">PRE presupuesto · PEL películas · ACT actores nuevos · VIL villanos · SUB suscriptores</div>
+  </section>
+
+  <div class="letter t" id="lt"></div><div class="letter b" id="lb"></div>
+  <div id="leak"></div>
+  <canvas id="grain" width="270" height="480"></canvas>
+  <div id="flash"></div>
+  <div id="fade"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script>
+(() => {
+'use strict';
+// Los 7 shorts de @JuanitoDesdeCero
+const DIAS = [
+  { img: 'img/dia1.jpg', hype: '$0', sub: 'Voy a ganarle a Marvel con $0 y una caja de cartón' },
+  { img: 'img/dia2.jpg', hype: '$522', sub: 'Juntaron $522 y compró su primera cámara' },
+  { img: 'img/dia3.jpg', hype: 'VILLANO', sub: 'Contrató al Doctor Tijeras y destruyó la ciudad' },
+  { img: 'img/dia4.jpg', hype: 'TODOS', sub: 'Metió a todos al estudio y eligieron el nombre' },
+  { img: 'img/dia5.jpg', hype: 'SORPRESA', sub: 'Disfraces, maquillaje y la web del Estudio Juanito' },
+  { img: 'img/dia6.jpg', hype: 'MEJORADO', sub: 'El villano se mejora y la ciudad cae otra vez' },
+  { img: 'img/dia7.jpg', hype: 'FINAL', sub: 'La batalla final: Cartón Man contra el Doctor Tijeras' },
+];
+const B = .5, HOOK = 8 * B, DAYLEN = 10 * B, D0 = HOOK, MONT = D0 + 7 * DAYLEN, CARD = MONT + 8 * B, DUR = CARD + 10 * B; // 4 · 35 · 4 · 5 s = 48 s
+const RENDER = /[?&#]render/.test(location.search + location.hash);
+if (RENDER) document.body.classList.add('render');
+const $ = (id) => document.getElementById(id);
+
+const daysEl = $('days');
+DIAS.forEach((d, i) => {
+  const s = document.createElement('section'); s.className = 'layer'; s.id = 'd' + i;
+  s.innerHTML = `<div class="fx"><img class="full" src="${d.img}" alt="Día ${i + 1}"></div><div class="grade"></div><div class="vig"></div>
+    <div class="lbl">Día ${i + 1} · Juanito desde Cero</div>
+    <div class="hype ${i % 2 ? 'gold' : ''}" style="top:1180px">${d.hype}</div>
+    <div class="sub">${d.sub}</div>`;
+  daysEl.appendChild(s);
+});
+
+// ---------- timeline ----------
+const tl = gsap.timeline({ paused: true, defaults: { ease: 'power3.out' } });
+const vis = (sel, a, b) => tl.set(sel, { visibility: 'visible' }, a).set(sel, { visibility: 'hidden' }, b);
+const flash = (t, a = .9) => tl.fromTo('#flash', { opacity: a }, { opacity: 0, duration: .32, ease: 'power2.out', immediateRender: false }, t);
+const shake = (sel, t, amp = 22) => tl.to(sel, { keyframes: { x: [amp, -amp, amp * .6, -amp * .4, 0], y: [-amp * .6, amp * .5, -amp * .3, amp * .2, 0], rotation: [1.2, -1, .6, 0, 0] }, duration: .3, ease: 'none' }, t);
+const rgb = (fx, t, amt = 46) => {
+  tl.set(fx, { filter: 'url(#rgb)' }, t).set(fx, { filter: 'none' }, t + .36)
+    .fromTo('#rOff', { attr: { dx: amt } }, { attr: { dx: 0 }, duration: .34, ease: 'power2.out', immediateRender: false }, t)
+    .fromTo('#bOff', { attr: { dx: -amt } }, { attr: { dx: 0 }, duration: .34, ease: 'power2.out', immediateRender: false }, t);
+};
+const leak = (t) => tl.fromTo('#leak', { opacity: .85 }, { opacity: 0, duration: .9, ease: 'power2.out', immediateRender: false }, t);
+// velocity ramp: fast push-in with motion blur, then a slow settle
+const velocity = (img, t, peak = 1.45) => tl.fromTo(img, { scale: 1.02, filter: 'blur(0px) saturate(1.15) contrast(1.08)' },
+  { keyframes: [{ scale: peak, filter: 'blur(10px) saturate(1.3) contrast(1.15)', duration: .14, ease: 'power3.in' }, { scale: 1.12, filter: 'blur(0px) saturate(1.15) contrast(1.08)', duration: 1.2, ease: 'expo.out' }], immediateRender: false }, t);
+
+// hook: black-and-white, letterbox, slow push, build-up
+vis('#hook', 0, HOOK);
+tl.fromTo('#lt, #lb', { height: 0 }, { height: 210, duration: 1.2, ease: 'expo.out' }, 0)
+  .fromTo('#hookImg', { scale: 1.35, filter: 'grayscale(1) brightness(.6) contrast(1.3)' }, { scale: 1.05, filter: 'grayscale(1) brightness(.8) contrast(1.3)', duration: HOOK, ease: 'none' }, 0)
+  .fromTo('#hk1', { opacity: 0, letterSpacing: '.25em' }, { opacity: 1, letterSpacing: '.05em', duration: 1.2 }, .6)
+  .fromTo('#hk2', { opacity: 0, scale: 2.4, filter: 'blur(20px)' }, { opacity: 1, scale: 1, filter: 'blur(0px)', duration: .5, ease: 'expo.out' }, 4 * B);
+shake('#hook', 4 * B + .3, 16);
+tl.to('#hk1, #hk2', { opacity: 0, scale: .9, duration: .3, ease: 'power2.in' }, HOOK - .3);
+
+// drop: color hits, bars slam away
+flash(D0, 1); leak(D0);
+tl.to('#lt, #lb', { height: 0, duration: .25, ease: 'power3.in' }, D0 - .1);
+
+DIAS.forEach((d, i) => {
+  const s = D0 + i * DAYLEN, g = '#d' + i, img = g + ' .full', fx = g + ' .fx';
+  vis(g, s, s + DAYLEN);
+  // two velocity hits per day (beat 0 and beat 5), plus small pumps
+  velocity(img, s, 1.5); rgb(fx, s, 56); shake(g, s + .12, 26);
+  velocity(img, s + 5 * B, 1.32); rgb(fx, s + 5 * B, 36); shake(g, s + 5 * B + .12, 18);
+  if (i) flash(s, .75);
+  if (i % 2 === 0) leak(s + 5 * B);
+  tl.fromTo(g + ' .lbl', { opacity: 0, letterSpacing: '.6em' }, { opacity: 1, letterSpacing: '.3em', duration: .8 }, s + .1)
+    .fromTo(g + ' .hype', { scale: 2.6, opacity: 0, filter: 'blur(18px)' }, { scale: 1, opacity: 1, filter: 'blur(0px)', duration: .45, ease: 'expo.out' }, s + 5 * B)
+    .fromTo(g + ' .sub', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: .6 }, s + 1)
+    .to(g + ' .hype, ' + g + ' .sub, ' + g + ' .lbl', { opacity: 0, duration: .2 }, s + DAYLEN - .2);
+});
+
+// montage: posters + scene flicks at half beats with RGB hits
+vis('#mont', MONT, CARD);
+const FL = ['poster1', 'e3', 'e4', 'f2e2', 'poster2', 'f2e5', 'f2e6', 'e5'];
+FL.forEach((n, k) => {
+  const t = MONT + k * B;
+  tl.set('#montImg', { attr: { src: `img/${n}.jpg` } }, t);
+  velocity('#montImg', t, 1.3); rgb('#mont .fx', t, 40);
+  if (k % 2 === 0) shake('#mont', t + .1, 20);
+});
+tl.fromTo('#mt1', { scale: 2.5, opacity: 0 }, { scale: 1, opacity: 1, duration: .4, ease: 'expo.out' }, MONT + 4 * B);
+flash(MONT, .8);
+
+// player card
+vis('#cardL', CARD, DUR + 1);
+flash(CARD, 1); leak(CARD);
+tl.fromTo('#card', { y: 1300, rotationY: 540, scale: .6 }, { y: 0, rotationY: 0, scale: 1, duration: 1.1, ease: 'expo.out' }, CARD)
+  .fromTo('#shine', { xPercent: -120 }, { xPercent: 120, duration: .9, ease: 'power2.inOut' }, CARD + 1.1)
+  .fromTo('#ovr', { scale: 2.2 }, { scale: 1, duration: .5, ease: 'back.out(3)' }, CARD + 1)
+  .fromTo('#hdl', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: .5 }, CARD + 2.2)
+  .fromTo('#leg', { opacity: 0 }, { opacity: 1, duration: .6 }, CARD + 2.6)
+  .to('#card', { rotationY: 8, rotationX: -4, duration: 2.6, ease: 'sine.inOut' }, CARD + 1.8);
+shake('#card', CARD + 1.1, 14);
+document.querySelectorAll('#card .stats b').forEach((el, k) => {
+  const o = { v: 0 }, v = +el.dataset.v;
+  tl.fromTo(o, { v: 0 }, { v, duration: 1.1, ease: 'power2.out', onUpdate: () => { el.textContent = Math.round(o.v); } }, CARD + 1.2 + k * .1);
+});
+tl.fromTo('#fade', { opacity: 0 }, { opacity: 1, duration: .7, ease: 'none' }, DUR - .7).set({}, {}, DUR);
+
+// grain
+const gc = $('grain'), gx = gc.getContext('2d'), gim = gx.createImageData(270, 480);
+function grain(t) { let s = Math.floor(t * 24) * 9301 + 49297; for (let i = 0; i < gim.data.length; i += 4) { s = (s * 233280 + 49297) % 2147483647; const v = s & 255; gim.data[i] = gim.data[i + 1] = gim.data[i + 2] = v; gim.data[i + 3] = 255; } gx.putImageData(gim, 0, 0); }
+function renderAt(t) { tl.time(Math.min(t, DUR - .001), false); grain(t); }
+window.__renderAt = (t) => { renderAt(t); return true; };
+window.__DUR = DUR;
+
+// ---------- phonk-style soundtrack: cowbell melody, 808 slides, half-time clap ----------
+async function renderMusic(sr) {
+  const ac = new OfflineAudioContext(2, Math.ceil(sr * DUR), sr);
+  const out = ac.createGain(); out.gain.value = .8; const comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; out.connect(comp); comp.connect(ac.destination);
+  const nb = ac.createBuffer(1, sr, sr); { const d = nb.getChannelData(0); for (let i = 0; i < sr; i++) d[i] = Math.random() * 2 - 1; }
+  const noise = (t0, dur, type, freq, vol) => { const s = ac.createBufferSource(); s.buffer = nb; const f = ac.createBiquadFilter(); f.type = type; f.frequency.value = freq; const g = ac.createGain(); g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(.001, t0 + dur); s.connect(f); f.connect(g); g.connect(out); s.start(t0, Math.random() * .5); s.stop(t0 + dur + .02); };
+  const kick = (t0, v = 1) => { const o = ac.createOscillator(), g = ac.createGain(), d = ac.createWaveShaper(); const c = new Float32Array(256); for (let i = 0; i < 256; i++) { const x = i / 128 - 1; c[i] = Math.tanh(x * 3); } d.curve = c;
+    o.frequency.setValueAtTime(170, t0); o.frequency.exponentialRampToValueAtTime(42, t0 + .12); g.gain.setValueAtTime(v, t0); g.gain.exponentialRampToValueAtTime(.001, t0 + .4); o.connect(d); d.connect(g); g.connect(out); o.start(t0); o.stop(t0 + .45); };
+  const bell = (f0, t0, vol) => { [1, 1.48].forEach(m => { const o = ac.createOscillator(); o.type = 'square'; o.frequency.value = f0 * m; const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f0 * m * 1.5; bp.Q.value = 3; const g = ac.createGain();
+    g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(.001, t0 + .28); o.connect(bp); bp.connect(g); g.connect(out); o.start(t0); o.stop(t0 + .3); }); };
+  const sub = (m, t0, dur, slideTo) => { const o = ac.createOscillator(); o.type = 'sine'; const f = 440 * Math.pow(2, (m - 69) / 12); o.frequency.setValueAtTime(f, t0); if (slideTo) o.frequency.exponentialRampToValueAtTime(440 * Math.pow(2, (slideTo - 69) / 12), t0 + dur * .6);
+    const d = ac.createWaveShaper(); const c = new Float32Array(256); for (let i = 0; i < 256; i++) { const x = i / 128 - 1; c[i] = Math.tanh(x * 2); } d.curve = c; const g = ac.createGain(); g.gain.setValueAtTime(.55, t0); g.gain.exponentialRampToValueAtTime(.001, t0 + dur); o.connect(d); d.connect(g); g.connect(out); o.start(t0); o.stop(t0 + dur + .05); };
+  const riser = (t0, dur) => { const s = ac.createBufferSource(); s.buffer = nb; s.loop = true; const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 2; f.frequency.setValueAtTime(300, t0); f.frequency.exponentialRampToValueAtTime(7000, t0 + dur); const g = ac.createGain(); g.gain.setValueAtTime(.001, t0); g.gain.exponentialRampToValueAtTime(.3, t0 + dur); s.connect(f); f.connect(g); g.connect(out); s.start(t0); s.stop(t0 + dur); };
+  // cowbell riff (2 bars of 16ths), MIDI notes, null = rest
+  const RIFF = [76, null, 76, 79, null, 76, null, 74, 76, null, 76, 79, null, 81, 79, null, 76, null, 76, 79, null, 76, null, 74, 72, null, 72, 74, null, 76, 74, null];
+  const BASS = [[40, 0, 3], [40, 3, 2, 43], [36, 8, 4], [38, 12, 3, 33]]; // [note, start16th(per bar), len16ths, slide]
+  const s16 = B / 4, bars = Math.ceil(DUR / (4 * B));
+  for (let n = 0; n < bars; n++) {
+    const t = n * 4 * B, drop = t >= HOOK - .01 && t < DUR - 2;
+    for (let k = 0; k < 16; k++) { const m = RIFF[(n % 2) * 16 + k]; if (m) bell(440 * Math.pow(2, (m - 69) / 12), t + k * s16, drop ? .1 : (t / HOOK) * .08 + .02); }
+    if (drop) {
+      kick(t); kick(t + 2.5 * B, .8); kick(t + 3.25 * B, .6);
+      noise(t + 2 * B, .22, 'bandpass', 1500, .5); noise(t + 2 * B, .1, 'highpass', 5000, .25);
+      for (let k = 0; k < 16; k++) noise(t + k * s16, .03, 'highpass', 9000, k % 4 === 2 ? .09 : .045);
+      BASS.forEach(([m, st, len, sl]) => sub(m - 12, t + st * s16, len * s16 * 1.6, sl ? sl - 12 : 0));
+    }
+  }
+  riser(HOOK - 4 * B, 4 * B); riser(CARD - 2 * B, 2 * B);
+  for (let i = 0; i < 7; i++) { const t = D0 + i * DAYLEN; kick(t, 1.2); noise(t, .6, 'lowpass', 800, .5); }
+  kick(CARD, 1.2); noise(CARD, .9, 'lowpass', 700, .6);
+  out.gain.setValueAtTime(.8, DUR - 1.5); out.gain.linearRampToValueAtTime(0, DUR);
+  return ac.startRendering();
+}
+window.__renderAudio = async () => {
+  const sr = 44100, buf = await renderMusic(sr); const L = buf.getChannelData(0), R = buf.getChannelData(1), N = L.length;
+  const bytes = new Uint8Array(44 + N * 4), dv = new DataView(bytes.buffer); const w = (o, s) => [...s].forEach((c, i) => dv.setUint8(o + i, c.charCodeAt(0)));
+  w(0, 'RIFF'); dv.setUint32(4, 36 + N * 4, true); w(8, 'WAVE'); w(12, 'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 2, true); dv.setUint32(24, sr, true); dv.setUint32(28, sr * 4, true); dv.setUint16(32, 4, true); dv.setUint16(34, 16, true); w(36, 'data'); dv.setUint32(40, N * 4, true);
+  for (let i = 0; i < N; i++) { dv.setInt16(44 + i * 4, Math.max(-1, Math.min(1, L[i])) * 32767, true); dv.setInt16(46 + i * 4, Math.max(-1, Math.min(1, R[i])) * 32767, true); }
+  let bin = ''; for (let i = 0; i < bytes.length; i += 32768) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 32768)); return btoa(bin);
+};
+
+if (RENDER) { renderAt(0); window.__ready = true; return; }
+
+// ---------- player ----------
+const stage = $('stage'), screen = $('screen'), view = screen.parentElement;
+screen.appendChild(stage);
+const fit = () => { const cs = getComputedStyle(view), pw = view.clientWidth, ph = view.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  const h = Math.max(200, Math.min(ph, pw * 16 / 9)), w = h * 9 / 16; screen.style.width = w + 'px'; screen.style.height = h + 'px'; stage.style.transform = `scale(${w / 1080})`; };
+new ResizeObserver(fit).observe(view); fit();
+const scrub = $('scrub'), tc = $('tc'), btnPlay = $('btnPlay'), btnSound = $('btnSound');
+scrub.max = DUR.toFixed(2);
+const mmss = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+let t = 0, playing = false, last = 0, ac = null, src = null, buf = null, soundOn = false;
+const ui = () => { scrub.value = t; tc.textContent = `${mmss(t)} / ${mmss(DUR)}`; btnPlay.textContent = playing ? 'Pausa' : 'Reproducir'; };
+const stopSound = () => { if (src) { try { src.stop(); } catch (_) {} src = null; } };
+const startSound = () => { stopSound(); if (!soundOn || !buf || !playing) return; src = ac.createBufferSource(); src.buffer = buf; src.connect(ac.destination); src.start(0, Math.min(t, DUR - .05)); };
+const seek = (v) => { t = Math.max(0, Math.min(DUR, v)); renderAt(t); ui(); if (playing) startSound(); };
+const setPlaying = (p) => { if (p && t >= DUR - .05) t = 0; playing = p; last = performance.now(); p ? startSound() : stopSound(); ui(); };
+btnPlay.onclick = () => setPlaying(!playing);
+scrub.oninput = () => seek(parseFloat(scrub.value));
+btnSound.onclick = async () => {
+  soundOn = !soundOn; btnSound.setAttribute('aria-pressed', String(soundOn)); if (!soundOn) { stopSound(); return; }
+  if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') await ac.resume();
+  if (!buf) { btnSound.textContent = 'Cargando…'; buf = await renderMusic(ac.sampleRate); btnSound.textContent = 'Sonido'; } startSound();
+};
+addEventListener('keydown', (e) => { if (e.code === 'Space' && !e.target.closest('button, input')) { e.preventDefault(); setPlaying(!playing); } });
+function loop(now) { if (playing) { t += (now - last) / 1000; if (t >= DUR) { t = DUR; playing = false; stopSound(); } renderAt(t); ui(); } last = now; requestAnimationFrame(loop); }
+seek(D0 + 3.4);
+document.fonts && document.fonts.ready.then(() => renderAt(t));
+requestAnimationFrame((n) => { last = n; loop(n); });
+})();
+</script>
