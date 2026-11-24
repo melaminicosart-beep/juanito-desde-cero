@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Juanito · Live Día 9</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#0b0a1a;color:#fff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+#bg{position:fixed;inset:0;background:url(juanito.jpg) center/cover;filter:blur(18px) brightness(.35);transform:scale(1.2)}
+.screen{position:fixed;inset:0;display:flex;flex-direction:column}
+.hidden{display:none!important}
+/* setup */
+#setup{align-items:center;justify-content:center;padding:24px;gap:14px;background:rgba(10,8,30,.75)}
+#setup h1{font-size:26px;text-align:center}
+#setup h1 span{color:#ffd23f}
+#setup p{font-size:14px;opacity:.8;text-align:center;max-width:340px}
+#setup input{width:100%;max-width:360px;padding:14px;border-radius:12px;border:2px solid #3a3570;background:#16133a;color:#fff;font-size:15px}
+.btn{width:100%;max-width:360px;padding:15px;border:0;border-radius:14px;font-size:17px;font-weight:800;cursor:pointer}
+.go{background:#ff2e4d;color:#fff}
+.demo{background:#ffd23f;color:#1a1300}
+#err{color:#ff8a8a;font-size:14px;text-align:center;max-width:360px;min-height:18px}
+/* live */
+#live{padding:14px 14px 0}
+.top{display:flex;align-items:center;gap:8px}
+.badge{background:#ff2e4d;padding:6px 11px;border-radius:8px;font-weight:900;font-size:14px;letter-spacing:.5px;display:flex;align-items:center;gap:6px}
+.dot{width:9px;height:9px;border-radius:50%;background:#fff;animation:bl 1s infinite}
+@keyframes bl{50%{opacity:.2}}
+.title{font-weight:900;font-size:17px}
+.title small{display:block;font-size:12px;font-weight:600;opacity:.7}
+#gear{margin-left:auto;background:none;border:0;color:#fff;opacity:.25;font-size:20px}
+.hero{display:flex;gap:12px;align-items:center;margin:12px 0 10px}
+.pic{width:92px;height:122px;border-radius:16px;background:url(juanito.jpg) center 30%/cover;border:3px solid #ffd23f;flex:none;animation:bob 2.4s ease-in-out infinite;box-shadow:0 0 24px #ffd23f55}
+@keyframes bob{50%{transform:translateY(-6px) rotate(-1.5deg)}}
+.say{background:#fff;color:#14112e;border-radius:16px 16px 16px 4px;padding:11px 13px;font-weight:800;font-size:15px;line-height:1.25;position:relative;min-height:60px;display:flex;align-items:center}
+.stats{display:flex;gap:8px;margin-bottom:10px}
+.st{flex:1;background:rgba(255,255,255,.08);border-radius:12px;padding:8px;text-align:center}
+.st b{display:block;font-size:22px}
+.st span{font-size:11px;opacity:.75;text-transform:uppercase;letter-spacing:.5px}
+.lh{font-weight:900;font-size:13px;letter-spacing:1px;opacity:.8;margin-bottom:6px}
+#q{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:7px}
+.row{display:flex;align-items:center;gap:10px;background:rgba(22,19,58,.92);border:2px solid #2c2766;border-radius:14px;padding:8px 10px;position:relative;overflow:hidden;animation:in .4s cubic-bezier(.2,1.4,.4,1)}
+@keyframes in{from{transform:translateX(-110%);opacity:0}}
+.row.ok{border-color:#2fd47a;background:rgba(14,58,38,.92)}
+.row.out{border-color:#ff4d5e;background:rgba(70,12,22,.92);animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.row.bye{transition:.5s;transform:translateX(110%);opacity:0}
+.n{width:26px;font-weight:900;font-size:16px;text-align:center;color:#ffd23f}
+.av{width:36px;height:36px;border-radius:50%;background:#5a4fd0 center/cover;flex:none;display:flex;align-items:center;justify-content:center;font-weight:900}
+.who{flex:1;min-width:0}
+.nm{font-weight:800;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ps{font-size:11px;opacity:.8;font-weight:700}
+.tm{font-weight:900;font-size:15px;min-width:52px;text-align:right}
+.bar{position:absolute;left:0;bottom:0;height:3px;background:#ffd23f;transition:width 1s linear}
+.row.ok .bar{background:#2fd47a}
+.foot{margin:8px -14px 0;background:#ffd23f;color:#1a1300;font-weight:900;font-size:15px;padding:11px 0;white-space:nowrap;overflow:hidden}
+.foot div{display:inline-block;padding-left:100%;animation:tk 16s linear infinite}
+@keyframes tk{to{transform:translateX(-100%)}}
+#pop{white-space:pre-line;position:fixed;left:50%;top:40%;transform:translate(-50%,-50%) scale(.6);background:#ff2e4d;padding:14px 20px;border-radius:16px;font-weight:900;font-size:20px;text-align:center;opacity:0;transition:.25s;pointer-events:none;box-shadow:0 10px 40px #000a;max-width:86%}
+#pop.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#pop.g{background:#2fd47a;color:#04200f}
+#empty{opacity:.6;text-align:center;padding:30px 10px;font-weight:700}
+</style>
+</head>
+<body>
+<div id="bg"></div>
+
+<div id="setup" class="screen">
+  <h1>🎬 Live de <span>Juanito</span> · Día 9</h1>
+  <p>Pega tu llave de Google y el link de tu live. Se guardan solo en este celular.</p>
+  <input id="key" placeholder="Llave de Google (AIza...)" autocomplete="off">
+  <input id="url" placeholder="Link del live (youtube.com/live/...)" autocomplete="off">
+  <button class="btn go" id="bgo">🔴 Conectar al live</button>
+  <button class="btn demo" id="bdemo">🧪 Modo prueba (sin live)</button>
+  <div id="err"></div>
+</div>
+
+<div id="live" class="screen hidden">
+  <div class="top">
+    <div class="badge"><div class="dot"></div>EN VIVO</div>
+    <div class="title">Juanito desde Cero<small>Día 9 · La fila del estudio</small></div>
+    <button id="gear">⚙</button>
+  </div>
+  <div class="hero">
+    <div class="pic"></div>
+    <div class="say" id="say">¡Comenta para entrar a la fila del estudio! 🎥</div>
+  </div>
+  <div class="stats">
+    <div class="st"><b id="sq">0</b><span>En fila</span></div>
+    <div class="st"><b id="sv">0</b><span>Verificados</span></div>
+    <div class="st"><b id="sx">0</b><span>Expulsados</span></div>
+  </div>
+  <div class="lh">FILA · tienes 60 s para volver a comentar</div>
+  <div id="q"><div id="empty">Esperando comentarios del chat…</div></div>
+  <div class="foot"><div>💬 Comenta para entrar a la fila  ·  ⏱️ Si no comentas en 1 minuto, te expulsamos  ·  ✅ Escribe SUSCRITO para verificarte y ganar un puesto  ·  🎬 Juanito desde Cero  ·  </div></div>
+</div>
+<div id="pop"></div>
+
+<script>
+const LIMIT=60;
+const PUESTOS=["VERIFICADOR","CAMARÓGRAFO","SONIDISTA","LUCES","GUIONISTA","EXTRA","MAQUILLAJE","UTILERÍA","ASISTENTE","DOBLE DE ACCIÓN","FOTÓGRAFO","PRODUCTOR"];
+const $=id=>document.getElementById(id);
+const store={get:k=>{try{return localStorage.getItem(k)||""}catch(e){return""}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
+$("key").value=store.get("jk");$("url").value=store.get("ju");
+
+const people=new Map(); // id -> {name,img,last,ok,puesto,el,out}
+let nVer=0,nOut=0,nextP=0,running=false,demoT=null,pollT=null;
+
+/* sonidos */
+let ac=null;
+function beep(f,d,t="sine",v=.15){try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d);o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
+const sJoin=()=>{beep(660,.12);setTimeout(()=>beep(990,.15),90)};
+const sOk=()=>{beep(523,.1);setTimeout(()=>beep(659,.1),80);setTimeout(()=>beep(784,.2),160)};
+const sOut=()=>{beep(220,.3,"square",.08);setTimeout(()=>beep(150,.35,"square",.08),150)};
+
+function pop(t,g){const p=$("pop");p.textContent=t;p.className=g?"on g":"on";clearTimeout(pop.t);pop.t=setTimeout(()=>p.className=g?"g":"",1600)}
+function say(t){$("say").textContent=t}
+function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+function comment(id,name,img,text){
+  if(!running)return;
+  let p=people.get(id);
+  const now=Date.now();
+  if(p&&p.out)return;
+  if(!p){
+    p={name,img,last:now,ok:false,puesto:"",out:false};
+    const el=document.createElement("div");el.className="row";
+    el.innerHTML=`<div class="n"></div><div class="av"></div><div class="who"><div class="nm">${esc(name)}</div><div class="ps">⏳ En fila</div></div><div class="tm"></div><div class="bar"></div>`;
+    const av=el.querySelector(".av");
+    if(img)av.style.backgroundImage=`url("${img}")`;else av.textContent=name.replace("@","")[0]?.toUpperCase()||"?";
+    p.el=el;people.set(id,p);
+    $("empty")?.remove();
+    $("q").appendChild(el);
+    sJoin();say(`¡Bienvenido ${name}! Entraste a la fila 🎉`);
+  }else{p.last=now}
+  if(!p.ok&&/suscrit/i.test(text)){
+    p.ok=true;p.puesto=PUESTOS[nextP%PUESTOS.length];nextP++;nVer++;
+    p.el.classList.add("ok");p.el.querySelector(".ps").textContent=`✅ Puesto: ${p.puesto}`;
+    sOk();pop(`✅ ${name}\nes ${p.puesto}`,true);say(`${name} ya es ${p.puesto} del estudio ✅`);
+  }
+  render();
+}
+
+function render(){
+  const now=Date.now();let i=0,inQ=0;
+  for(const [id,p] of people){
+    if(p.out)continue;
+    const left=Math.max(0,LIMIT-Math.floor((now-p.last)/1000));
+    if(left<=0&&!p.ok){kick(id,p);continue}
+    i++;inQ++;
+    p.el.querySelector(".n").textContent=i;
+    const tm=p.el.querySelector(".tm");
+    if(p.ok){tm.textContent="✅";p.el.querySelector(".bar").style.width="100%"}
+    else{tm.textContent=`0:${String(left).padStart(2,"0")}`;tm.style.color=left<=10?"#ff6b7a":"#fff";p.el.querySelector(".bar").style.width=(left/LIMIT*100)+"%"}
+  }
+  // los verificados arriba
+  const rows=[...people.values()].filter(p=>!p.out).sort((a,b)=>(b.ok-a.ok));
+  rows.forEach(p=>$("q").appendChild(p.el));
+  rows.forEach((p,k)=>p.el.querySelector(".n").textContent=k+1);
+  $("sq").textContent=inQ;$("sv").textContent=nVer;$("sx").textContent=nOut;
+}
+function kick(id,p){
+  p.out=true;nOut++;
+  p.el.classList.add("out");p.el.querySelector(".ps").textContent="❌ Expulsado: no comentó a tiempo";p.el.querySelector(".tm").textContent="❌";
+  sOut();pop(`❌ ${p.name}\nexpulsado`);say(`${p.name} no comentó a tiempo… ¡fuera de la fila! ❌`);
+  setTimeout(()=>{p.el.classList.add("bye");setTimeout(()=>{p.el.remove();people.delete(id)},500)},2500);
+}
+setInterval(()=>running&&render(),1000);
+
+function start(){
+  $("setup").classList.add("hidden");$("live").classList.remove("hidden");running=true;
+  try{document.documentElement.requestFullscreen?.()}catch(e){}
+}
+function stop(){running=false;clearTimeout(pollT);clearInterval(demoT);$("live").classList.add("hidden");$("setup").classList.remove("hidden")}
+$("gear").onclick=()=>{if(confirm("¿Salir del live y volver al inicio?"))stop()};
+
+/* ---------- modo prueba ---------- */
+$("bdemo").onclick=()=>{
+  start();beep(1,.01);
+  const N=["@YenhyVillca","@milcahernandezmorales7124","@Losfacherosdelbrawlstars","@JesiAlguera","@ElCrackDel10","@MiaGamer","@TomasitoYT","@LunaPlays","@DiegoZ","@ValeLoca22"];
+  const T=["hola!!","yo quiero entrar","suscrito ✅","vamos Juanito","SUSCRITO","jajaja","primero","quiero ser camarógrafo"];
+  let k=0;
+  demoT=setInterval(()=>{
+    const live=[...people.entries()].filter(([i,p])=>!p.out);
+    if(live.length&&Math.random()<.45){const [id,p]=live[Math.floor(Math.random()*live.length)];comment(id,p.name,"",T[Math.floor(Math.random()*T.length)])}
+    else{const n=N[k%N.length]+(k>=N.length?k:"");comment("d"+k,n,"",Math.random()<.3?"suscrito":"hola");k++}
+  },3500);
+};
+
+/* ---------- live real ---------- */
+function vidFrom(u){u=u.trim();let m=u.match(/(?:v=|youtu\.be\/|\/live\/|\/shorts\/|\/embed\/)([\w-]{11})/);if(m)return m[1];if(/^[\w-]{11}$/.test(u))return u;return""}
+$("bgo").onclick=async()=>{
+  const key=$("key").value.trim(),vid=vidFrom($("url").value);
+  $("err").textContent="";
+  if(!key){$("err").textContent="Falta la llave de Google.";return}
+  if(!vid){$("err").textContent="No reconozco el link del live.";return}
+  store.set("jk",key);store.set("ju",$("url").value.trim());
+  $("err").textContent="Conectando…";
+  try{
+    const r=await fetch(`https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${vid}&key=${encodeURIComponent(key)}`);
+    const j=await r.json();
+    if(j.error)throw new Error(j.error.message);
+    const chat=j.items?.[0]?.liveStreamingDetails?.activeLiveChatId;
+    if(!chat)throw new Error("Ese live no está activo todavía (o el chat está apagado). Inícialo primero.");
+    $("err").textContent="";start();beep(1,.01);
+    const t0=Date.now()-60000;let token="";
+    const poll=async()=>{
+      if(!running)return;
+      let wait=6000;
+      try{
+        const r=await fetch(`https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${chat}&part=snippet,authorDetails&maxResults=200&key=${encodeURIComponent(key)}${token?"&pageToken="+token:""}`);
+        const j=await r.json();
+        if(j.error){say("⚠️ "+j.error.message);wait=15000}
+        else{
+          token=j.nextPageToken||token;
+          wait=Math.max(5000,j.pollingIntervalMillis||5000);
+          for(const m of j.items||[]){
+            if(new Date(m.snippet.publishedAt).getTime()<t0)continue;
+            const a=m.authorDetails;if(a.isChatOwner)continue;
+            comment(a.channelId,a.displayName,a.profileImageUrl,m.snippet.displayMessage||"");
+          }
+        }
+      }catch(e){wait=10000}
+      pollT=setTimeout(poll,wait);
+    };
+    poll();
+  }catch(e){$("err").textContent="⚠️ "+e.message}
+};
+</script>
+</body>
+</html>
