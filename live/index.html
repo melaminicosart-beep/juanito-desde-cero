@@ -68,7 +68,6 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
   <input id="key" placeholder="Llave de Google (AIza...)" autocomplete="off">
   <input id="url" placeholder="Link del live (youtube.com/live/...)" autocomplete="off">
   <button class="btn go" id="bgo">🔴 Conectar al live</button>
-  <button class="btn demo" id="bdemo">🧪 Modo prueba (sin live)</button>
   <div id="err"></div>
 </div>
 
@@ -258,18 +257,6 @@ function start(){$("setup").classList.add("hidden");$("hud").classList.remove("h
 function stop(){running=false;clearTimeout(pollT);clearInterval(demoT);$("hud").classList.add("hidden");$("setup").classList.remove("hidden")}
 $("gear").onclick=()=>{if(confirm("¿Salir del live y volver al inicio?"))stop()};
 
-$("bdemo").onclick=()=>{
-  start();
-  const N=["@YenhyVillca","@milcahernandezmorales7124","@Losfacherosdelbrawlstars","@JesiAlguera","@ElCrackDel10","@MiaGamer","@TomasitoYT","@LunaPlays","@DiegoZ","@ValeLoca22","@SantiPro","@CamilaXD"];
-  const TX=["hola!!","yo quiero entrar","suscrito ✅","vamos Juanito","jajaja","primero","quiero ser camarógrafo"];
-  let k=0;
-  demoT=setInterval(()=>{
-    const q=queueList().filter(p=>!p.ok&&p.state=="queue");
-    if(q.length>3&&Math.random()<.5){if(Math.random()<.35)return;const p=q[Math.floor(Math.random()*q.length)];comment(p.id,p.name,TX[Math.floor(Math.random()*TX.length)])}
-    else if(queueList().length<14){const n=N[k%N.length]+(k>=N.length?k:"");comment("d"+k,n,Math.random()<.2?"suscrito":"hola");k++}
-  },2600);
-};
-
 function vidFrom(u){u=u.trim();let m=u.match(/(?:v=|youtu\.be\/|\/live\/|\/shorts\/|\/embed\/)([\w-]{11})/);if(m)return m[1];if(/^[\w-]{11}$/.test(u))return u;return""}
 $("bgo").onclick=async()=>{
   const key=$("key").value.trim(),vid=vidFrom($("url").value);$("err").textContent="";
@@ -290,7 +277,7 @@ $("bgo").onclick=async()=>{
         const j=await r.json();
         if(j.error){say("⚠️ "+j.error.message);wait=15000}
         else{token=j.nextPageToken||token;wait=Math.max(5000,j.pollingIntervalMillis||5000);
-          for(const m of j.items||[]){if(new Date(m.snippet.publishedAt).getTime()<t0)continue;const a=m.authorDetails;if(a.isChatOwner)continue;comment(a.channelId,a.displayName,m.snippet.displayMessage||"")}}
+          for(const m of j.items||[]){if(new Date(m.snippet.publishedAt).getTime()<t0)continue;const a=m.authorDetails;comment(a.channelId,a.displayName,m.snippet.displayMessage||"")}}
       }catch(e){wait=10000}
       pollT=setTimeout(poll,wait)};
     poll();
